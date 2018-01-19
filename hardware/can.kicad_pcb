@@ -3,7 +3,7 @@
   (general
     (links 77)
     (no_connects 0)
-    (area 125.109499 82.909499 170.490501 118.290501)
+    (area 124.445139 82.245139 282.795857 162.890793)
     (thickness 1.6002)
     (drawings 16)
     (tracks 268)
@@ -43,7 +43,7 @@
   )
 
   (setup
-    (last_trace_width 0.2)
+    (last_trace_width 0.249)
     (user_trace_width 0.2)
     (user_trace_width 0.25)
     (user_trace_width 0.29972)
@@ -190,11 +190,11 @@
   )
 
   (module kicad-libraries:Logo_31x31 (layer Vorderseite) (tedit 4F1D86B0) (tstamp 54F853E0)
-    (at 144.6 92.8 180)
-    (fp_text reference G*** (at 1.34874 2.97434 180) (layer F.SilkS) hide
+    (at 141.3 89.4)
+    (fp_text reference G*** (at 1.34874 2.97434) (layer F.SilkS) hide
       (effects (font (size 0.29972 0.29972) (thickness 0.0762)))
     )
-    (fp_text value Logo_31x31 (at 1.651 0.59944 180) (layer F.SilkS) hide
+    (fp_text value Logo_31x31 (at 1.651 0.59944) (layer F.SilkS) hide
       (effects (font (size 0.29972 0.29972) (thickness 0.0762)))
     )
     (fp_poly (pts (xy 0 0) (xy 0.0381 0) (xy 0.0381 0.0381) (xy 0 0.0381)
@@ -7116,7 +7116,7 @@
   (gr_text status (at 150.8 117) (layer F.SilkS)
     (effects (font (size 0.8001 0.8001) (thickness 0.14986)))
   )
-  (gr_text "Termination\noff - on" (at 155.8 84.7 180) (layer F.SilkS)
+  (gr_text "Termination\noff - on" (at 155.8 84.7) (layer F.SilkS)
     (effects (font (size 0.8 0.8) (thickness 0.15)))
   )
   (gr_text "CAN-L  CAN-H   GND" (at 169.1 101 90) (layer F.SilkS)
@@ -7133,10 +7133,10 @@
   (gr_text "Copyright Tinkerforge GmbH 2018.\nThis documentation describes Open Hardware and is licensed under the\nCERN OHL v. 1.1.\nYou may redistribute and modify this documentation under the terms of the\nCERN OHL v.1.1. (http://ohwr.org/cernohl). This documentation is distributed\nWITHOUT ANY EXPRESS OR IMPLIED WARRANTY, INCLUDING OF\nMERCHANTABILITY, SATISFACTORY QUALITY AND FITNESS FOR A\nPARTICULAR PURPOSE. Please see the CERN OHL v.1.1 for applicable\nconditions" (at 258.8 156.55) (layer Cmts.User)
     (effects (font (size 0.8001 0.8001) (thickness 0.200025) italic))
   )
-  (gr_text tinkerforge.com (at 143 88.8 180) (layer F.SilkS)
+  (gr_text tinkerforge.com (at 142.9 93.4) (layer F.SilkS)
     (effects (font (size 0.8001 0.8001) (thickness 0.14986)))
   )
-  (gr_text "CAN\n2.0" (at 128.7 109.6 180) (layer F.SilkS) (tstamp 54F8157B)
+  (gr_text "CAN\n2.0" (at 128.7 109.6) (layer F.SilkS) (tstamp 54F8157B)
     (effects (font (size 0.8001 0.8001) (thickness 0.14986)))
   )
 
