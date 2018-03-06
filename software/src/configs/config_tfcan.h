@@ -29,35 +29,13 @@
 #define TFCAN_CLOCK_SOURCE               XMC_CAN_CANCLKSRC_MCLK
 #define TFCAN_FREQUENCY                  48000000
 #define TFCAN_NODE                       CAN_NODE0
-#define TFCAN_NODE_NUM                   0
+#define TFCAN_NODE_INDEX                 0
 #define TFCAN_RX_PIN                     P0_5
 #define TFCAN_RECEIVE_INPUT              XMC_CAN_NODE_RECEIVE_INPUT_RXDCB
 #define TFCAN_TX_PIN                     P0_4
-
-
-
-/*
-#define PCF85263A_I2C_BAUDRATE         100000
-
-#define PCF85263A_I2C_ADDRESS          0b1010001
-#define PCF85263A_I2C                  XMC_I2C0_CH1
-
-#define PCF85263A_SCL_PORT             XMC_GPIO_PORT0
-#define PCF85263A_SCL_PIN              8
-#define PCF85263A_SCL_PIN_MODE         XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN_ALT7
-#define PCF85263A_SCL_INPUT            XMC_USIC_CH_INPUT_DX1
-#define PCF85263A_SCL_SOURCE           1
-#define PCF85263A_SCL_FIFO_SIZE        XMC_USIC_CH_FIFO_SIZE_16WORDS
-#define PCF85263A_SCL_FIFO_POINTER     32
-
-#define PCF85263A_SDA_PORT             XMC_GPIO_PORT0
-#define PCF85263A_SDA_PIN              6
-#define PCF85263A_SDA_PIN_MODE         XMC_GPIO_MODE_OUTPUT_OPEN_DRAIN_ALT7
-#define PCF85263A_SDA_INPUT            XMC_USIC_CH_INPUT_DX0
-#define PCF85263A_SDA_SOURCE           2
-#define PCF85263A_SDA_FIFO_SIZE        XMC_USIC_CH_FIFO_SIZE_16WORDS
-#define PCF85263A_SDA_FIFO_POINTER     48
-
-#define PCF85263A_INT_PIN              P0_9*/
+#define TFCAN_TX_SRQ_INDEX               0
+#define TFCAN_TX_IRQ_INDEX               0
+#define TFCAN_MO_COUNT                   32
+#define TFCAN_BUFFER_SIZE                768
 
 #endif
