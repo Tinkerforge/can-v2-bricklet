@@ -30,15 +30,13 @@
 #include "xmc_can.h"
 
 typedef enum {
-	TFCAN_FRAME_TYPE_STANDARD_DATA = 0,
-	TFCAN_FRAME_TYPE_STANDARD_REMOTE,
-	TFCAN_FRAME_TYPE_EXTENDED_DATA,
-	TFCAN_FRAME_TYPE_EXTENDED_REMOTE,
-} TFCANFrameType;
+	TFCAN_TYPE_STANDARD = 0,
+	TFCAN_TYPE_EXTENDED
+} TFCANType;
 
 typedef struct {
 	struct {
-		uint32_t type:3;
+		uint32_t type:3; // TFCANType
 		uint32_t identifier:29;
 	};
 	uint8_t data[8];
@@ -54,23 +52,25 @@ typedef struct {
 	uint8_t next_tx_mo_index;
 
 	TFCANFrame buffer[TFCAN_BUFFER_SIZE];
+
+	TFCANFrame *tx_buffer;
 	uint16_t tx_buffer_size; // [1..TFCAN_BUFFER_SIZE-1]
 	uint16_t tx_buffer_start;
 	uint16_t tx_buffer_end;
+
+	TFCANFrame *rx_buffer;
 	uint16_t rx_buffer_size; // [1..TFCAN_BUFFER_SIZE-1]
 	uint16_t rx_buffer_start;
 	uint16_t rx_buffer_end;
 
 	uint32_t last_transmit;
-	uint8_t next_fake_data;
-} TFCAN; // Avoid name collision with global XMC CAN object named CAN
+} TFCAN; // avoid name collision with global XMC CAN object named CAN
 
 void tfcan_init(void);
 void tfcan_tick(void);
 
 void tfcan_reconfigure_mo(void);
 
-bool tfcan_write_frame(TFCANFrame *frame);
-bool tfcan_read_frame(TFCANFrame *frame);
+bool tfcan_enqueue_frame(TFCANFrame *frame);
 
 #endif

@@ -24,6 +24,8 @@
 #include "bricklib2/utility/communication_callback.h"
 #include "bricklib2/protocols/tfp/tfp.h"
 
+#include "tfcan.h"
+
 BootloaderHandleMessageResponse handle_message(const void *message, void *response) {
 	switch(tfp_get_fid_from_message(message)) {
 		case FID_WRITE_FRAME: return write_frame(message, response);
@@ -40,9 +42,23 @@ BootloaderHandleMessageResponse handle_message(const void *message, void *respon
 	}
 }
 
-
 BootloaderHandleMessageResponse write_frame(const WriteFrame *data, WriteFrame_Response *response) {
+	// FIXME: add parameter check
+
+	TFCANFrame frame;
+
+	if (data->frame_type == CAN_V2_FRAME_TYPE_STANDARD_DATA) {
+		frame.type = TFCAN_TYPE_STANDARD;
+	} else {
+		frame.type = TFCAN_TYPE_EXTENDED;
+	}
+
+	frame.identifier = data->identifier;
+	memcpy(frame.data, data->data, data->length);
+	frame.length = data->length;
+
 	response->header.length = sizeof(WriteFrame_Response);
+	response->success       = tfcan_enqueue_frame(&frame);
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }

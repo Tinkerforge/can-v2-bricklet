@@ -44,9 +44,12 @@ void tfcan_init(void) {
 
 	tfcan.next_tx_mo_index = 0;
 
+	tfcan.tx_buffer = tfcan.buffer;
 	tfcan.tx_buffer_size = TFCAN_BUFFER_SIZE / 2;
 	tfcan.tx_buffer_start = 0;
 	tfcan.tx_buffer_end = 0;
+
+	tfcan.rx_buffer = &tfcan.buffer[tfcan.tx_buffer_size];
 	tfcan.rx_buffer_size = TFCAN_BUFFER_SIZE / 2;
 	tfcan.rx_buffer_start = 0;
 	tfcan.rx_buffer_end = 0;
@@ -57,7 +60,7 @@ void tfcan_init(void) {
 	// configure bit timing
 	const XMC_CAN_NODE_NOMINAL_BIT_TIME_CONFIG_t bit_time_config = {
 		.can_frequency = TFCAN_FREQUENCY,
-		.baudrate      = 500000, // 500kbps, [100Kbps..1000Kbps]
+		.baudrate      = 125000, // 500kbps, [100Kbps..1000Kbps]
 		.sample_point  = 8000, // 80%, [0%..100%]
 		.sjw           = 1, // [1..4]
 	};
@@ -95,11 +98,10 @@ void tfcan_init(void) {
 	tfcan_reconfigure_mo();
 
 	tfcan.last_transmit = system_timer_get_ms();
-	tfcan.next_fake_data = 0;
 }
 
 void tfcan_tick(void) {
-	if (!system_timer_is_time_elapsed_ms(tfcan.last_transmit, 1000)) {
+	/*if (!system_timer_is_time_elapsed_ms(tfcan.last_transmit, 1000)) {
 		return;
 	}
 
@@ -107,30 +109,45 @@ void tfcan_tick(void) {
 		logi("st %d %032_8b\n\r", i, XMC_CAN_MO_GetStatus(&tfcan.mo[i]));
 	}
 
-	logi("fgpr %032_8b\n\r", tfcan.mo[0].can_mo_ptr->MOFGPR);
+	logi("fgpr %032_8b\n\r", tfcan.mo[0].can_mo_ptr->MOFGPR);*/
 
-	for (uint8_t k = 0; k < 3; ++k) {
+	for (uint8_t k = 0; k < tfcan.tx_mo_count; ++k) {
+		// check TX buffer
+		if (tfcan.tx_buffer_start == tfcan.tx_buffer_end) {
+			break; // TX buffer empty
+		}
+
+		// check TX FIFO
 		XMC_CAN_MO_t *next_tx_mo = &tfcan.mo[tfcan.next_tx_mo_index];
 		uint32_t next_tx_mo_status = XMC_CAN_MO_GetStatus(next_tx_mo);
 
-		if ((next_tx_mo_status & XMC_CAN_MO_STATUS_TX_REQUEST) == 0) {
-			logi("tx %d\n\r", tfcan.next_tx_mo_index);
-
-			//XMC_CAN_MO_SetStandardID(next_tx_mo);
-			XMC_CAN_MO_SetExtendedID(next_tx_mo);
-
-			XMC_CAN_MO_SetIdentifier(next_tx_mo, (0b11111111111 << 18) | tfcan.next_fake_data);
-
-			next_tx_mo->can_data_byte[0] = tfcan.next_fake_data;
-			next_tx_mo->can_data_length = 1;
-
-			XMC_CAN_MO_UpdateData(next_tx_mo);
-
-			XMC_CAN_MO_SetStatus(next_tx_mo, XMC_CAN_MO_SET_STATUS_TX_REQUEST);
-
-			++tfcan.next_fake_data;
-			tfcan.next_tx_mo_index = (tfcan.next_tx_mo_index + 1) % tfcan.tx_mo_count;
+		if ((next_tx_mo_status & XMC_CAN_MO_STATUS_TX_REQUEST) != 0) {
+			break; // TX FIFO full
 		}
+
+		logi("tx %d\n\r", tfcan.next_tx_mo_index);
+
+		// copy frame into MO
+		TFCANFrame *frame = &tfcan.tx_buffer[tfcan.tx_buffer_start];
+
+		tfcan.tx_buffer_start = (tfcan.tx_buffer_start + 1) % tfcan.tx_buffer_size;
+
+		if (frame->type == TFCAN_TYPE_STANDARD) {
+			XMC_CAN_MO_SetStandardID(next_tx_mo);
+		} else {
+			XMC_CAN_MO_SetExtendedID(next_tx_mo);
+		}
+
+		XMC_CAN_MO_SetIdentifier(next_tx_mo, frame->identifier);
+
+		memcpy(next_tx_mo->can_data_byte, frame->data, frame->length);
+		next_tx_mo->can_data_length = frame->length;
+		XMC_CAN_MO_UpdateData(next_tx_mo);
+
+		// schedule MO for transmission
+		XMC_CAN_MO_SetStatus(next_tx_mo, XMC_CAN_MO_SET_STATUS_TX_REQUEST);
+
+		tfcan.next_tx_mo_index = (tfcan.next_tx_mo_index + 1) % tfcan.tx_mo_count;
 	}
 
 	tfcan.last_transmit = system_timer_get_ms();
@@ -164,8 +181,10 @@ void tfcan_reconfigure_mo(void) {
 		XMC_CAN_MO_SetEventNodePointer(&tfcan.mo[i], XMC_CAN_MO_POINTER_EVENT_TRANSMIT, TFCAN_TX_SRQ_INDEX);
 		XMC_CAN_MO_EnableEvent(&tfcan.mo[i], XMC_CAN_MO_EVENT_TRANSMIT);
 
-		// clear RXEN that is set by XMC_CAN_MO_Config even for transmit MOs
+		// FIXME: clear RXEN that is set by XMC_CAN_MO_Config even for transmit MOs
 		XMC_CAN_MO_SetStatus(&tfcan.mo[i], XMC_CAN_MO_RESET_STATUS_RX_ENABLE);
+
+		//XMC_CAN_MO_SetStatus(&tfcan.mo[i], XMC_CAN_MO_RESET_STATUS_MESSAGE_DIRECTION);
 	}
 
 	// configure TX FIFO
@@ -182,10 +201,15 @@ void tfcan_reconfigure_mo(void) {
 	}
 }
 
-bool tfcan_write_frame(TFCANFrame *frame) {
-	return false;
-}
+bool tfcan_enqueue_frame(TFCANFrame *frame) {
+	uint16_t new_tx_buffer_end = (tfcan.tx_buffer_end + 1) % tfcan.tx_buffer_size;
 
-bool tfcan_read_frame(TFCANFrame *frame) {
-	return false;
+	if (new_tx_buffer_end == tfcan.tx_buffer_start) {
+		return false; // TX buffer full
+	}
+
+	memcpy(&tfcan.tx_buffer[tfcan.tx_buffer_end], frame, sizeof(TFCANFrame));
+	tfcan.tx_buffer_end = new_tx_buffer_end;
+
+	return true;
 }

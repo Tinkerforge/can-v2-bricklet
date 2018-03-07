@@ -36,6 +36,6 @@
 #define TFCAN_TX_SRQ_INDEX               0
 #define TFCAN_TX_IRQ_INDEX               0
 #define TFCAN_MO_COUNT                   32
-#define TFCAN_BUFFER_SIZE                768
+#define TFCAN_BUFFER_SIZE                768 // 13-byte frames
 
 #endif
