@@ -28,6 +28,11 @@
 #include "xmc_can.h"
 
 typedef enum {
+	TFCAN_MO_TYPE_STANDARD = 0,
+	TFCAN_MO_TYPE_EXTENDED
+} TFCAN_MOType;
+
+typedef enum {
 	TFCAN_MO_STATUS_RX_PENDING             = CAN_MO_MOSTAT_RXPND_Msk,
 	TFCAN_MO_STATUS_TX_PENDING             = CAN_MO_MOSTAT_TXPND_Msk,
 	TFCAN_MO_STATUS_RX_UPDATING            = CAN_MO_MOSTAT_RXUPD_Msk,
@@ -85,10 +90,17 @@ typedef enum {
 
 void tfcan_mo_init_tx(CAN_MO_TypeDef *const mo);
 
-void tfcan_mo_init_tx_fifo_base(CAN_MO_TypeDef *const mo, const uint8_t base,
-                                const uint8_t top, const uint8_t bottom);
+void tfcan_mo_init_tx_fifo_base(CAN_MO_TypeDef *const mo, const uint8_t base_and_bottom,
+                                const uint8_t top);
 
 void tfcan_mo_init_tx_fifo_slave(CAN_MO_TypeDef *const mo, const uint8_t base);
+
+void tfcan_mo_init_rx(CAN_MO_TypeDef *const mo);
+
+void tfcan_mo_init_rx_fifo_base(CAN_MO_TypeDef *const mo, const uint8_t base_and_bottom,
+                                const uint8_t top);
+
+void tfcan_mo_init_rx_fifo_slave(CAN_MO_TypeDef *const mo, const uint8_t base);
 
 uint32_t tfcan_mo_get_status(const CAN_MO_TypeDef *const mo);
 
@@ -100,10 +112,16 @@ void tfcan_mo_set_irq_pointer(CAN_MO_TypeDef *const mo,
 
 void tfcan_mo_enable_event(CAN_MO_TypeDef *const mo, const uint32_t event);
 
-void tfcan_mo_set_identifier(CAN_MO_TypeDef *const mo, const bool extended,
+void tfcan_mo_set_identifier(CAN_MO_TypeDef *const mo, const TFCAN_MOType type,
                              const uint32_t identifier);
 
-void tfcan_mo_set_data(CAN_MO_TypeDef *const mo, const uint8_t data[8],
+void tfcan_mo_set_data(CAN_MO_TypeDef *const mo, const uint8_t *const data,
                        const uint8_t length);
+
+void tfcan_mo_get_identifier(CAN_MO_TypeDef *const mo, TFCAN_MOType * consttype,
+                             uint32_t *const identifier);
+
+void tfcan_mo_get_data(CAN_MO_TypeDef *const mo, uint8_t *const data,
+                       uint8_t *const length);
 
 #endif

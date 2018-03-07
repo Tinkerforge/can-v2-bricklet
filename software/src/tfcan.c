@@ -40,9 +40,10 @@ void tfcan_init(void) {
 	memset(&tfcan, 0, sizeof(TFCAN));
 
 	tfcan.tx_mo_count = TFCAN_MO_COUNT / 2;
-	tfcan.rx_mo_count = TFCAN_MO_COUNT / 2;
+	tfcan.tx_mo_next_index = 0;
 
-	tfcan.next_tx_mo_index = 0;
+	tfcan.rx_mo_count = TFCAN_MO_COUNT / 2;
+	tfcan.rx_mo_next_index = 0;
 
 	tfcan.tx_buffer = tfcan.buffer;
 	tfcan.tx_buffer_size = TFCAN_BUFFER_SIZE / 2;
@@ -106,39 +107,93 @@ void tfcan_tick(void) {
 	}
 
 	for (uint8_t i = 0; i < tfcan.tx_mo_count; ++i) {
-		logi("st %02d %032_8b\n\r", i, tfcan_mo_get_status(tfcan.mo[i]));
+		logi("st-tx %02d %032_8b\n\r", i, tfcan_mo_get_status(tfcan.tx_mo[i]));
 	}
 
-	logi("fgpr %032_8b\n\r", tfcan.mo[0]->MOFGPR);*/
+	logi("fgpr-tx %032_8b\n\r", tfcan.tx_mo[0]->MOFGPR);
 
-	for (uint8_t k = 0; k < tfcan.tx_mo_count; ++k) {
+	for (uint8_t i = 0; i < tfcan.rx_mo_count; ++i) {
+		logi("st-rx %02d %032_8b\n\r", i, tfcan_mo_get_status(tfcan.rx_mo[i]));
+	}
+
+	logi("fgpr-rx %032_8b\n\r", tfcan.rx_mo[0]->MOFGPR);*/
+
+	// write at most TX FIFO size frames
+	for (uint8_t i = 0; i < tfcan.tx_mo_count; ++i) {
 		// check TX buffer
 		if (tfcan.tx_buffer_start == tfcan.tx_buffer_end) {
 			break; // TX buffer empty
 		}
 
 		// check TX FIFO
-		CAN_MO_TypeDef *next_tx_mo = tfcan.mo[tfcan.next_tx_mo_index];
-		uint32_t next_tx_mo_status = tfcan_mo_get_status(next_tx_mo);
+		CAN_MO_TypeDef *tx_mo_next = tfcan.tx_mo[tfcan.tx_mo_next_index];
+		uint32_t status = tfcan_mo_get_status(tx_mo_next);
 
-		if ((next_tx_mo_status & TFCAN_MO_STATUS_TX_REQUEST) != 0) {
+		if ((status & TFCAN_MO_STATUS_TX_REQUEST) != 0) {
 			break; // TX FIFO full
 		}
 
-		logi("tx %d\n\r", tfcan.next_tx_mo_index);
+		logi("tx %d\n\r", tfcan.tx_mo_next_index);
 
 		// copy frame into MO
 		TFCAN_Frame *frame = &tfcan.tx_buffer[tfcan.tx_buffer_start];
 
 		tfcan.tx_buffer_start = (tfcan.tx_buffer_start + 1) % tfcan.tx_buffer_size;
 
-		tfcan_mo_set_identifier(next_tx_mo, frame->type == TFCAN_TYPE_EXTENDED, frame->identifier);
-		tfcan_mo_set_data(next_tx_mo, frame->data, frame->length);
+		tfcan_mo_set_identifier(tx_mo_next, frame->type, frame->identifier);
+		tfcan_mo_set_data(tx_mo_next, frame->data, frame->length);
 
 		// schedule MO for transmission
-		tfcan_mo_change_status(next_tx_mo, TFCAN_MO_SET_STATUS_TX_REQUEST);
+		tfcan_mo_change_status(tx_mo_next, TFCAN_MO_SET_STATUS_TX_REQUEST);
 
-		tfcan.next_tx_mo_index = (tfcan.next_tx_mo_index + 1) % tfcan.tx_mo_count;
+		tfcan.tx_mo_next_index = (tfcan.tx_mo_next_index + 1) % tfcan.tx_mo_count;
+	}
+
+	// read at most RX FIFO size frames
+	for (uint8_t i = 0; i < tfcan.rx_mo_count; ++i) {
+		// check RX buffer
+		if ((tfcan.rx_buffer_end + 1) % tfcan.rx_buffer_size == tfcan.rx_buffer_start) {
+			// FIXME: drop RX MO?
+
+			break; // RX buffer full
+		}
+
+		// check RX FIFO
+		CAN_MO_TypeDef *rx_mo_next = tfcan.rx_mo[tfcan.rx_mo_next_index];
+		uint32_t status = tfcan_mo_get_status(rx_mo_next);
+
+		if ((status & TFCAN_MO_STATUS_RX_PENDING) == 0) {
+			break; // RX FIFO empty
+		}
+
+		logi("rx %d\n\r", tfcan.rx_mo_next_index);
+
+		TFCAN_Frame *frame = &tfcan.rx_buffer[tfcan.rx_buffer_end];
+
+		tfcan.rx_buffer_end = (tfcan.rx_buffer_end + 1) % tfcan.rx_buffer_size;
+
+		do {
+			tfcan_mo_change_status(rx_mo_next, TFCAN_MO_RESET_STATUS_NEW_DATA |
+			                                   TFCAN_MO_RESET_STATUS_RX_PENDING);
+
+			// copy MO to frame
+			TFCAN_MOType type;
+			uint32_t identifier;
+
+			tfcan_mo_get_identifier(rx_mo_next, &type, &identifier);
+
+			frame->type = type;
+			frame->identifier = identifier;
+
+			tfcan_mo_get_data(rx_mo_next, frame->data, &frame->length);
+
+			logi("rx try %d\n\r", tfcan.rx_mo_next_index);
+
+			status = tfcan_mo_get_status(rx_mo_next);
+		} while ((status & TFCAN_MO_STATUS_NEW_DATA) != 0 ||
+		         (status & TFCAN_MO_STATUS_RX_UPDATING) != 0); // FIXME: add timeout
+
+		tfcan.rx_mo_next_index = (tfcan.rx_mo_next_index + 1) % tfcan.rx_mo_count;
 	}
 
 	tfcan.last_transmit = system_timer_get_ms();
@@ -158,26 +213,48 @@ void tfcan_reconfigure_mos(void) {
 
 	// configure TX MOs
 	for (uint8_t i = 0; i < tfcan.tx_mo_count; ++i) {
-		tfcan.mo[i] = (CAN_MO_TypeDef *)&CAN_MO->MO[i];
+		tfcan.tx_mo[i] = (CAN_MO_TypeDef *)&CAN_MO->MO[i];
 
 		XMC_CAN_AllocateMOtoNodeList(CAN, TFCAN_NODE_INDEX, i);
 		while (!XMC_CAN_IsPanelControlReady(CAN)) {}
 
-		tfcan_mo_init_tx(tfcan.mo[i]);
-		tfcan_mo_set_irq_pointer(tfcan.mo[i], TFCAN_MO_IRQ_POINTER_TRANSMIT, TFCAN_TX_SRQ_INDEX);
-		tfcan_mo_enable_event(tfcan.mo[i], TFCAN_MO_EVENT_TRANSMIT);
-
-		//tfcan_mo_change_status(&tfcan.mo[i], TFCAN_MO_RESET_STATUS_MESSAGE_DIRECTION);
+		tfcan_mo_init_tx(tfcan.tx_mo[i]);
+		tfcan_mo_set_irq_pointer(tfcan.tx_mo[i], TFCAN_MO_IRQ_POINTER_TRANSMIT, TFCAN_TX_SRQ_INDEX);
+		tfcan_mo_enable_event(tfcan.tx_mo[i], TFCAN_MO_EVENT_TRANSMIT);
 	}
 
 	// configure TX FIFO
-	tfcan_mo_init_tx_fifo_base(tfcan.mo[0], 0, tfcan.tx_mo_count - 1, 0);
+	uint8_t tx_fifo_base = 0; // also bottom
+
+	tfcan_mo_init_tx_fifo_base(tfcan.tx_mo[0], tx_fifo_base, tx_fifo_base + tfcan.tx_mo_count - 1);
 
 	for (uint8_t i = 1; i < tfcan.tx_mo_count; ++i) {
-		tfcan_mo_init_tx_fifo_slave(tfcan.mo[i], 0);
+		tfcan_mo_init_tx_fifo_slave(tfcan.tx_mo[i], tx_fifo_base);
+	}
+
+	// configure RX MOs
+	for (uint8_t i = 0; i < tfcan.rx_mo_count; ++i) {
+		tfcan.rx_mo[i] = (CAN_MO_TypeDef *)&CAN_MO->MO[tfcan.tx_mo_count + i];
+
+		XMC_CAN_AllocateMOtoNodeList(CAN, TFCAN_NODE_INDEX, tfcan.tx_mo_count + i);
+		while (!XMC_CAN_IsPanelControlReady(CAN)) {}
+
+		tfcan_mo_init_rx(tfcan.rx_mo[i]);
+		tfcan_mo_set_irq_pointer(tfcan.rx_mo[i], TFCAN_MO_IRQ_POINTER_RECEIVE, TFCAN_RX_SRQ_INDEX);
+		tfcan_mo_enable_event(tfcan.rx_mo[i], TFCAN_MO_EVENT_RECEIVE);
+	}
+
+	// configure TX FIFO
+	uint8_t rx_fifo_base = tfcan.tx_mo_count;
+
+	tfcan_mo_init_rx_fifo_base(tfcan.rx_mo[0], rx_fifo_base, rx_fifo_base + tfcan.rx_mo_count - 1);
+
+	for (uint8_t i = 1; i < tfcan.rx_mo_count; ++i) {
+		tfcan_mo_init_rx_fifo_slave(tfcan.rx_mo[i], rx_fifo_base);
 	}
 }
 
+// add frame to TX buffer
 bool tfcan_enqueue_frame(TFCAN_Frame *frame) {
 	uint16_t new_tx_buffer_end = (tfcan.tx_buffer_end + 1) % tfcan.tx_buffer_size;
 
@@ -187,6 +264,18 @@ bool tfcan_enqueue_frame(TFCAN_Frame *frame) {
 
 	memcpy(&tfcan.tx_buffer[tfcan.tx_buffer_end], frame, sizeof(TFCAN_Frame));
 	tfcan.tx_buffer_end = new_tx_buffer_end;
+
+	return true;
+}
+
+// remove frame from RX buffer
+bool tfcan_dequeue_frame(TFCAN_Frame *frame) {
+	if (tfcan.rx_buffer_start == tfcan.rx_buffer_end) {
+		return false; // RX buffer empty
+	}
+
+	memcpy(frame, &tfcan.rx_buffer[tfcan.rx_buffer_start], sizeof(TFCAN_Frame));
+	tfcan.rx_buffer_start = (tfcan.rx_buffer_start + 1) % tfcan.tx_buffer_size;
 
 	return true;
 }

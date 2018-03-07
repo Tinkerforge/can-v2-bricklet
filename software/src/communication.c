@@ -22,6 +22,7 @@
 #include "communication.h"
 
 #include "bricklib2/utility/communication_callback.h"
+#include "bricklib2/utility/util_definitions.h"
 #include "bricklib2/protocols/tfp/tfp.h"
 
 #include "tfcan.h"
@@ -48,9 +49,9 @@ BootloaderHandleMessageResponse write_frame(const WriteFrame *data, WriteFrame_R
 	TFCAN_Frame frame;
 
 	if (data->frame_type == CAN_V2_FRAME_TYPE_STANDARD_DATA) {
-		frame.type = TFCAN_TYPE_STANDARD;
+		frame.type = TFCAN_MO_TYPE_STANDARD;
 	} else {
-		frame.type = TFCAN_TYPE_EXTENDED;
+		frame.type = TFCAN_MO_TYPE_EXTENDED;
 	}
 
 	frame.identifier = data->identifier;
@@ -64,7 +65,17 @@ BootloaderHandleMessageResponse write_frame(const WriteFrame *data, WriteFrame_R
 }
 
 BootloaderHandleMessageResponse read_frame(const ReadFrame *data, ReadFrame_Response *response) {
+	// Need to zero the whole frame here because tfcan_dequeue_frame
+	// will not touch it if there is no frame to be read
+	TFCAN_Frame frame = {{0}};
+
 	response->header.length = sizeof(ReadFrame_Response);
+	response->success       = tfcan_dequeue_frame(&frame);
+	response->frame_type    = frame.type;
+	response->identifier    = frame.identifier;
+	memcpy(response->data, frame.data, MIN(frame.length, 8));
+	memset(&response->data[frame.length], 0, 8 - MIN(frame.length, 8));
+	response->length        = frame.length;
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }

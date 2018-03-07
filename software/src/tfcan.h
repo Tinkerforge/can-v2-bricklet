@@ -31,14 +31,9 @@
 
 #include "tfcan_mo.h"
 
-typedef enum {
-	TFCAN_TYPE_STANDARD = 0,
-	TFCAN_TYPE_EXTENDED
-} TFCAN_Type;
-
 typedef struct {
 	struct {
-		uint32_t type:3; // TFCAN_Type
+		uint32_t type:3; // TFCAN_MOType
 		uint32_t identifier:29;
 	};
 	uint8_t data[8];
@@ -46,12 +41,13 @@ typedef struct {
 } __attribute__((__packed__)) TFCAN_Frame; // 13 bytes
 
 typedef struct {
-	CAN_MO_TypeDef *mo[TFCAN_MO_COUNT];
-
+	CAN_MO_TypeDef *tx_mo[TFCAN_MO_COUNT];
 	uint8_t tx_mo_count; // [1..TFCAN_MO_COUNT-1]
-	uint8_t rx_mo_count; // [1..TFCAN_MO_COUNT-1]
+	uint8_t tx_mo_next_index;
 
-	uint8_t next_tx_mo_index;
+	CAN_MO_TypeDef *rx_mo[TFCAN_MO_COUNT];
+	uint8_t rx_mo_count; // [1..TFCAN_MO_COUNT-1]
+	uint8_t rx_mo_next_index;
 
 	TFCAN_Frame buffer[TFCAN_BUFFER_SIZE];
 
@@ -74,5 +70,6 @@ void tfcan_tick(void);
 void tfcan_reconfigure_mos(void);
 
 bool tfcan_enqueue_frame(TFCAN_Frame *frame);
+bool tfcan_dequeue_frame(TFCAN_Frame *frame);
 
 #endif
