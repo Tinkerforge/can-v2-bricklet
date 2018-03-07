@@ -45,7 +45,7 @@ BootloaderHandleMessageResponse handle_message(const void *message, void *respon
 BootloaderHandleMessageResponse write_frame(const WriteFrame *data, WriteFrame_Response *response) {
 	// FIXME: add parameter check
 
-	TFCANFrame frame;
+	TFCAN_Frame frame;
 
 	if (data->frame_type == CAN_V2_FRAME_TYPE_STANDARD_DATA) {
 		frame.type = TFCAN_TYPE_STANDARD;

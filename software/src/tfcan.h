@@ -29,36 +29,38 @@
 
 #include "xmc_can.h"
 
+#include "tfcan_mo.h"
+
 typedef enum {
 	TFCAN_TYPE_STANDARD = 0,
 	TFCAN_TYPE_EXTENDED
-} TFCANType;
+} TFCAN_Type;
 
 typedef struct {
 	struct {
-		uint32_t type:3; // TFCANType
+		uint32_t type:3; // TFCAN_Type
 		uint32_t identifier:29;
 	};
 	uint8_t data[8];
 	uint8_t length;
-} __attribute__((__packed__)) TFCANFrame; // 13 bytes
+} __attribute__((__packed__)) TFCAN_Frame; // 13 bytes
 
 typedef struct {
-	XMC_CAN_MO_t mo[TFCAN_MO_COUNT];
+	CAN_MO_TypeDef *mo[TFCAN_MO_COUNT];
 
 	uint8_t tx_mo_count; // [1..TFCAN_MO_COUNT-1]
 	uint8_t rx_mo_count; // [1..TFCAN_MO_COUNT-1]
 
 	uint8_t next_tx_mo_index;
 
-	TFCANFrame buffer[TFCAN_BUFFER_SIZE];
+	TFCAN_Frame buffer[TFCAN_BUFFER_SIZE];
 
-	TFCANFrame *tx_buffer;
+	TFCAN_Frame *tx_buffer;
 	uint16_t tx_buffer_size; // [1..TFCAN_BUFFER_SIZE-1]
 	uint16_t tx_buffer_start;
 	uint16_t tx_buffer_end;
 
-	TFCANFrame *rx_buffer;
+	TFCAN_Frame *rx_buffer;
 	uint16_t rx_buffer_size; // [1..TFCAN_BUFFER_SIZE-1]
 	uint16_t rx_buffer_start;
 	uint16_t rx_buffer_end;
@@ -69,8 +71,8 @@ typedef struct {
 void tfcan_init(void);
 void tfcan_tick(void);
 
-void tfcan_reconfigure_mo(void);
+void tfcan_reconfigure_mos(void);
 
-bool tfcan_enqueue_frame(TFCANFrame *frame);
+bool tfcan_enqueue_frame(TFCAN_Frame *frame);
 
 #endif
