@@ -41,12 +41,12 @@ typedef struct {
 } __attribute__((__packed__)) TFCAN_Frame; // 13 bytes
 
 typedef struct {
-	CAN_MO_TypeDef *tx_mo[TFCAN_MO_COUNT];
-	uint8_t tx_mo_count; // [1..TFCAN_MO_COUNT-1]
+	CAN_MO_TypeDef *tx_mo[TFCAN_MO_SIZE];
+	uint8_t tx_mo_size; // [1..TFCAN_MO_SIZE-1]
 	uint8_t tx_mo_next_index;
 
-	CAN_MO_TypeDef *rx_mo[TFCAN_MO_COUNT];
-	uint8_t rx_mo_count; // [1..TFCAN_MO_COUNT-1]
+	CAN_MO_TypeDef *rx_mo[TFCAN_MO_SIZE];
+	uint8_t rx_mo_size; // [1..TFCAN_MO_SIZE-1]
 	uint8_t rx_mo_next_index;
 
 	TFCAN_Frame backlog[TFCAN_BACKLOG_SIZE];

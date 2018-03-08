@@ -44,7 +44,7 @@
 #define TFCAN_RX_SRQ_INDEX               0
 #define TFCAN_RX_IRQ_INDEX               0
 
-#define TFCAN_MO_COUNT                   32
+#define TFCAN_MO_SIZE                    32
 #define TFCAN_BACKLOG_SIZE               768 // 13-byte frames
 
 #endif
