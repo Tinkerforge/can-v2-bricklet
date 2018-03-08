@@ -99,6 +99,15 @@ void tfcan_init(void) {
 	tfcan_reconfigure_mos();
 
 	tfcan.last_transmit = system_timer_get_ms();
+
+	// configure extra LEDs
+	XMC_GPIO_CONFIG_t led_pin_config = {
+		.mode         = XMC_GPIO_MODE_OUTPUT_PUSH_PULL,
+		.output_level = XMC_GPIO_OUTPUT_LEVEL_HIGH
+	};
+
+	XMC_GPIO_Init(TFCAN_COM_LED_PIN, &led_pin_config);
+	XMC_GPIO_Init(TFCAN_ERROR_LED_PIN, &led_pin_config);
 }
 
 void tfcan_tick(void) {

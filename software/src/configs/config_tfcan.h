@@ -26,6 +26,9 @@
 #include "xmc_can.h"
 #include "xmc_can_map.h"
 
+#define TFCAN_COM_LED_PIN                P1_3
+#define TFCAN_ERROR_LED_PIN              P1_4
+
 #define TFCAN_CLOCK_SOURCE               XMC_CAN_CANCLKSRC_MCLK
 #define TFCAN_FREQUENCY                  48000000
 
