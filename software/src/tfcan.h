@@ -33,7 +33,7 @@
 
 typedef struct {
 	struct {
-		uint32_t type:3; // TFCAN_MOType
+		uint32_t mo_type:3; // TFCAN_MOType
 		uint32_t identifier:29;
 	};
 	uint8_t data[8];

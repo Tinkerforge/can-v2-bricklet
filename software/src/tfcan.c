@@ -149,7 +149,7 @@ void tfcan_tick(void) {
 
 		tfcan.tx_backlog_start = (tfcan.tx_backlog_start + 1) % tfcan.tx_backlog_size;
 
-		tfcan_mo_set_identifier(tx_mo_next, frame->type, frame->identifier);
+		tfcan_mo_set_identifier(tx_mo_next, frame->mo_type, frame->identifier);
 		tfcan_mo_set_data(tx_mo_next, frame->data, frame->length);
 
 		// schedule MO for transmission
@@ -186,12 +186,12 @@ void tfcan_tick(void) {
 			                                   TFCAN_MO_RESET_STATUS_RX_PENDING);
 
 			// copy MO to frame
-			TFCAN_MOType type;
+			TFCAN_MOType mo_type;
 			uint32_t identifier;
 
-			tfcan_mo_get_identifier(rx_mo_next, &type, &identifier);
+			tfcan_mo_get_identifier(rx_mo_next, &mo_type, &identifier);
 
-			frame->type = type;
+			frame->mo_type = mo_type;
 			frame->identifier = identifier;
 
 			tfcan_mo_get_data(rx_mo_next, frame->data, &frame->length);

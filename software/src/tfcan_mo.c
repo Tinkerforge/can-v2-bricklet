@@ -180,14 +180,20 @@ void tfcan_mo_enable_event(CAN_MO_TypeDef *const mo, const uint32_t event) {
 
 void tfcan_mo_set_identifier(CAN_MO_TypeDef *const mo, const TFCAN_MOType type,
                              const uint32_t identifier) {
-	if (type == TFCAN_MO_TYPE_STANDARD) {
+	if (type == TFCAN_MO_TYPE_STANDARD_DATA || type == TFCAN_MO_TYPE_STANDARD_REMOTE) {
 		mo->MOAR &= ~(uint32_t)CAN_MO_MOAR_IDE_Msk;
 		mo->MOAR = (mo->MOAR & ~(uint32_t)CAN_MO_MOAR_ID_Msk) |
 		           ((identifier << 18) & CAN_MO_MOAR_ID_Msk);
-	} else { // type == TFCAN_MO_TYPE_EXTENDED
+	} else {
 		mo->MOAR |= (uint32_t)CAN_MO_MOAR_IDE_Msk;
 		mo->MOAR = (mo->MOAR & ~(uint32_t)CAN_MO_MOAR_ID_Msk) |
 		           (identifier & CAN_MO_MOAR_ID_Msk);
+	}
+
+	if (type == TFCAN_MO_TYPE_STANDARD_DATA || type == TFCAN_MO_TYPE_EXTENDED_DATA) {
+		tfcan_mo_change_status(mo, TFCAN_MO_SET_STATUS_DIRECTION);
+	} else {
+		tfcan_mo_change_status(mo, TFCAN_MO_RESET_STATUS_DIRECTION);
 	}
 }
 
@@ -209,10 +215,20 @@ void tfcan_mo_set_data(CAN_MO_TypeDef *const mo, const uint8_t *const data,
 void tfcan_mo_get_identifier(CAN_MO_TypeDef *const mo, TFCAN_MOType *const type,
                              uint32_t *const identifier) {
 	if ((((mo->MOAR) & CAN_MO_MOAR_IDE_Msk) >> CAN_MO_MOAR_IDE_Pos) == 0) {
-		*type = TFCAN_MO_TYPE_STANDARD;
+		if ((tfcan_mo_get_status(mo) & TFCAN_MO_STATUS_DIRECTION) == 0) {
+			*type = TFCAN_MO_TYPE_STANDARD_DATA;
+		} else {
+			*type = TFCAN_MO_TYPE_STANDARD_REMOTE;
+		}
+
 		*identifier = (mo->MOAR & CAN_MO_MOAR_ID_Msk) >> 18;
 	} else {
-		*type = TFCAN_MO_TYPE_EXTENDED;
+		if ((tfcan_mo_get_status(mo) & TFCAN_MO_STATUS_DIRECTION) == 0) {
+			*type = TFCAN_MO_TYPE_EXTENDED_DATA;
+		} else {
+			*type = TFCAN_MO_TYPE_EXTENDED_REMOTE;
+		}
+
 		*identifier = mo->MOAR & CAN_MO_MOAR_ID_Msk;
 	}
 }

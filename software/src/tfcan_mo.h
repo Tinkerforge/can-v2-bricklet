@@ -27,9 +27,12 @@
 
 #include "xmc_can.h"
 
+// must match Bricklet API FrameType enum
 typedef enum {
-	TFCAN_MO_TYPE_STANDARD = 0,
-	TFCAN_MO_TYPE_EXTENDED
+	TFCAN_MO_TYPE_STANDARD_DATA = 0,
+	TFCAN_MO_TYPE_STANDARD_REMOTE,
+	TFCAN_MO_TYPE_EXTENDED_DATA,
+	TFCAN_MO_TYPE_EXTENDED_REMOTE
 } TFCAN_MOType;
 
 typedef enum {

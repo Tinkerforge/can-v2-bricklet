@@ -44,19 +44,27 @@ BootloaderHandleMessageResponse handle_message(const void *message, void *respon
 }
 
 BootloaderHandleMessageResponse write_frame(const WriteFrame *data, WriteFrame_Response *response) {
-	// FIXME: add parameter check
+	if (data->frame_type > CAN_V2_FRAME_TYPE_EXTENDED_REMOTE ||
+	    data->length > 15) {
+		return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+	}
+
+	if (data->frame_type < CAN_V2_FRAME_TYPE_EXTENDED_DATA) {
+		if (data->identifier >= (1 << 11)) {
+			return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+		}
+	} else {
+		if (data->identifier >= (1 << 29)) {
+			return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+		}
+	}
 
 	TFCAN_Frame frame;
 
-	if (data->frame_type == CAN_V2_FRAME_TYPE_STANDARD_DATA) {
-		frame.type = TFCAN_MO_TYPE_STANDARD;
-	} else {
-		frame.type = TFCAN_MO_TYPE_EXTENDED;
-	}
-
+	frame.mo_type    = data->frame_type;
 	frame.identifier = data->identifier;
 	memcpy(frame.data, data->data, data->length);
-	frame.length = data->length;
+	frame.length     = data->length;
 
 	response->header.length = sizeof(WriteFrame_Response);
 	response->success       = tfcan_enqueue_frame(&frame);
@@ -71,7 +79,7 @@ BootloaderHandleMessageResponse read_frame(const ReadFrame *data, ReadFrame_Resp
 
 	response->header.length = sizeof(ReadFrame_Response);
 	response->success       = tfcan_dequeue_frame(&frame);
-	response->frame_type    = frame.type;
+	response->frame_type    = frame.mo_type;
 	response->identifier    = frame.identifier;
 	memcpy(response->data, frame.data, MIN(frame.length, 8));
 	memset(&response->data[frame.length], 0, 8 - MIN(frame.length, 8));
