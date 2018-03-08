@@ -45,15 +45,15 @@ void tfcan_init(void) {
 	tfcan.rx_mo_count = TFCAN_MO_COUNT / 2;
 	tfcan.rx_mo_next_index = 0;
 
-	tfcan.tx_buffer = tfcan.buffer;
-	tfcan.tx_buffer_size = TFCAN_BUFFER_SIZE / 2;
-	tfcan.tx_buffer_start = 0;
-	tfcan.tx_buffer_end = 0;
+	tfcan.tx_backlog = tfcan.backlog;
+	tfcan.tx_backlog_size = TFCAN_BACKLOG_SIZE / 2;
+	tfcan.tx_backlog_start = 0;
+	tfcan.tx_backlog_end = 0;
 
-	tfcan.rx_buffer = &tfcan.buffer[tfcan.tx_buffer_size];
-	tfcan.rx_buffer_size = TFCAN_BUFFER_SIZE / 2;
-	tfcan.rx_buffer_start = 0;
-	tfcan.rx_buffer_end = 0;
+	tfcan.rx_backlog = &tfcan.backlog[tfcan.tx_backlog_size];
+	tfcan.rx_backlog_size = TFCAN_BACKLOG_SIZE / 2;
+	tfcan.rx_backlog_start = 0;
+	tfcan.rx_backlog_end = 0;
 
 	// configure clock
 	XMC_CAN_Init(CAN, TFCAN_CLOCK_SOURCE, TFCAN_FREQUENCY);
@@ -129,9 +129,9 @@ void tfcan_tick(void) {
 
 	// write at most TX FIFO size frames
 	for (uint8_t i = 0; i < tfcan.tx_mo_count; ++i) {
-		// check TX buffer
-		if (tfcan.tx_buffer_start == tfcan.tx_buffer_end) {
-			break; // TX buffer empty
+		// check TX backlog
+		if (tfcan.tx_backlog_start == tfcan.tx_backlog_end) {
+			break; // TX backlog empty
 		}
 
 		// check TX FIFO
@@ -145,9 +145,9 @@ void tfcan_tick(void) {
 		logi("tx %d\n\r", tfcan.tx_mo_next_index);
 
 		// copy frame into MO
-		TFCAN_Frame *frame = &tfcan.tx_buffer[tfcan.tx_buffer_start];
+		TFCAN_Frame *frame = &tfcan.tx_backlog[tfcan.tx_backlog_start];
 
-		tfcan.tx_buffer_start = (tfcan.tx_buffer_start + 1) % tfcan.tx_buffer_size;
+		tfcan.tx_backlog_start = (tfcan.tx_backlog_start + 1) % tfcan.tx_backlog_size;
 
 		tfcan_mo_set_identifier(tx_mo_next, frame->type, frame->identifier);
 		tfcan_mo_set_data(tx_mo_next, frame->data, frame->length);
@@ -160,11 +160,11 @@ void tfcan_tick(void) {
 
 	// read at most RX FIFO size frames
 	for (uint8_t i = 0; i < tfcan.rx_mo_count; ++i) {
-		// check RX buffer
-		if ((tfcan.rx_buffer_end + 1) % tfcan.rx_buffer_size == tfcan.rx_buffer_start) {
+		// check RX backlog
+		if ((tfcan.rx_backlog_end + 1) % tfcan.rx_backlog_size == tfcan.rx_backlog_start) {
 			// FIXME: drop RX MO?
 
-			break; // RX buffer full
+			break; // RX backlog full
 		}
 
 		// check RX FIFO
@@ -177,9 +177,9 @@ void tfcan_tick(void) {
 
 		logi("rx %d\n\r", tfcan.rx_mo_next_index);
 
-		TFCAN_Frame *frame = &tfcan.rx_buffer[tfcan.rx_buffer_end];
+		TFCAN_Frame *frame = &tfcan.rx_backlog[tfcan.rx_backlog_end];
 
-		tfcan.rx_buffer_end = (tfcan.rx_buffer_end + 1) % tfcan.rx_buffer_size;
+		tfcan.rx_backlog_end = (tfcan.rx_backlog_end + 1) % tfcan.rx_backlog_size;
 
 		do {
 			tfcan_mo_change_status(rx_mo_next, TFCAN_MO_RESET_STATUS_NEW_DATA |
@@ -263,28 +263,28 @@ void tfcan_reconfigure_mos(void) {
 	}
 }
 
-// add frame to TX buffer
+// add frame to TX backlog
 bool tfcan_enqueue_frame(TFCAN_Frame *frame) {
-	uint16_t new_tx_buffer_end = (tfcan.tx_buffer_end + 1) % tfcan.tx_buffer_size;
+	uint16_t new_tx_backlog_end = (tfcan.tx_backlog_end + 1) % tfcan.tx_backlog_size;
 
-	if (new_tx_buffer_end == tfcan.tx_buffer_start) {
-		return false; // TX buffer full
+	if (new_tx_backlog_end == tfcan.tx_backlog_start) {
+		return false; // TX backlog full
 	}
 
-	memcpy(&tfcan.tx_buffer[tfcan.tx_buffer_end], frame, sizeof(TFCAN_Frame));
-	tfcan.tx_buffer_end = new_tx_buffer_end;
+	memcpy(&tfcan.tx_backlog[tfcan.tx_backlog_end], frame, sizeof(TFCAN_Frame));
+	tfcan.tx_backlog_end = new_tx_backlog_end;
 
 	return true;
 }
 
-// remove frame from RX buffer
+// remove frame from RX backlog
 bool tfcan_dequeue_frame(TFCAN_Frame *frame) {
-	if (tfcan.rx_buffer_start == tfcan.rx_buffer_end) {
-		return false; // RX buffer empty
+	if (tfcan.rx_backlog_start == tfcan.rx_backlog_end) {
+		return false; // RX backlog empty
 	}
 
-	memcpy(frame, &tfcan.rx_buffer[tfcan.rx_buffer_start], sizeof(TFCAN_Frame));
-	tfcan.rx_buffer_start = (tfcan.rx_buffer_start + 1) % tfcan.tx_buffer_size;
+	memcpy(frame, &tfcan.rx_backlog[tfcan.rx_backlog_start], sizeof(TFCAN_Frame));
+	tfcan.rx_backlog_start = (tfcan.rx_backlog_start + 1) % tfcan.tx_backlog_size;
 
 	return true;
 }

@@ -49,17 +49,17 @@ typedef struct {
 	uint8_t rx_mo_count; // [1..TFCAN_MO_COUNT-1]
 	uint8_t rx_mo_next_index;
 
-	TFCAN_Frame buffer[TFCAN_BUFFER_SIZE];
+	TFCAN_Frame backlog[TFCAN_BACKLOG_SIZE];
 
-	TFCAN_Frame *tx_buffer;
-	uint16_t tx_buffer_size; // [1..TFCAN_BUFFER_SIZE-1]
-	uint16_t tx_buffer_start;
-	uint16_t tx_buffer_end;
+	TFCAN_Frame *tx_backlog;
+	uint16_t tx_backlog_size; // [1..TFCAN_BACKLOG_SIZE-1]
+	uint16_t tx_backlog_start;
+	uint16_t tx_backlog_end;
 
-	TFCAN_Frame *rx_buffer;
-	uint16_t rx_buffer_size; // [1..TFCAN_BUFFER_SIZE-1]
-	uint16_t rx_buffer_start;
-	uint16_t rx_buffer_end;
+	TFCAN_Frame *rx_backlog;
+	uint16_t rx_backlog_size; // [1..TFCAN_BACKLOG_SIZE-1]
+	uint16_t rx_backlog_start;
+	uint16_t rx_backlog_end;
 
 	uint32_t last_transmit;
 } TFCAN; // avoid name collision with global XMC CAN object named CAN
