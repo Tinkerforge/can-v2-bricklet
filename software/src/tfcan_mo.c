@@ -96,7 +96,7 @@ void tfcan_mo_init_tx_fifo_slave(CAN_MO_TypeDef *const mo, const uint8_t base) {
 	                           TFCAN_MO_RESET_STATUS_TX_ENABLE1);
 }
 
-void tfcan_mo_init_rx(CAN_MO_TypeDef *const mo) {
+void tfcan_mo_init_rx(CAN_MO_TypeDef *const mo, const TFCAN_BufferType type) {
 	// reset all status bits
 	tfcan_mo_change_status(mo, TFCAN_MO_RESET_STATUS_RX_PENDING |
 	                           TFCAN_MO_RESET_STATUS_TX_PENDING |
@@ -129,6 +129,12 @@ void tfcan_mo_init_rx(CAN_MO_TypeDef *const mo) {
 	// clear data
 	mo->MODATAL = 0;
 	mo->MODATAH = 0;
+
+	// configure remote frame reception
+	if (type == TFCAN_BUFFER_TYPE_REMOTE) {
+		tfcan_mo_change_status(mo, TFCAN_MO_SET_STATUS_DIRECTION);
+		mo->MOFCR |= (uint32_t)CAN_MO_MOFCR_RMM_Msk;
+	}
 
 	// enable RX and mark as valid
 	tfcan_mo_change_status(mo, TFCAN_MO_SET_STATUS_RX_ENABLE |

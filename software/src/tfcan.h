@@ -41,13 +41,16 @@ typedef struct {
 } __attribute__((__packed__)) TFCAN_Frame; // 13 bytes
 
 typedef struct {
-	CAN_MO_TypeDef *tx_mo[TFCAN_MO_SIZE];
+	CAN_MO_TypeDef *mo[TFCAN_MO_SIZE];
+
+	CAN_MO_TypeDef **tx_mo;
 	uint8_t tx_mo_size; // [1..TFCAN_MO_SIZE-1]
 	uint8_t tx_mo_next_index;
 
-	CAN_MO_TypeDef *rx_mo[TFCAN_MO_SIZE];
-	uint8_t rx_mo_size; // [1..TFCAN_MO_SIZE-1]
-	uint8_t rx_mo_next_index;
+	CAN_MO_TypeDef **rx_mo[TFCAN_MO_SIZE];
+	uint8_t rx_mo_size[TFCAN_MO_SIZE]; // [1..TFCAN_MO_SIZE-1]
+	uint8_t rx_mo_next_index[TFCAN_MO_SIZE];
+	TFCAN_BufferType rx_mo_type[TFCAN_MO_SIZE];
 
 	TFCAN_Frame backlog[TFCAN_BACKLOG_SIZE];
 
@@ -61,13 +64,13 @@ typedef struct {
 	uint16_t rx_backlog_start;
 	uint16_t rx_backlog_end;
 
-	uint32_t last_transmit;
+	uint32_t last_debug;
 } TFCAN; // avoid name collision with global XMC CAN object named CAN
 
 void tfcan_init(void);
 void tfcan_tick(void);
 
-void tfcan_reconfigure_mos(void);
+void tfcan_reconfigure_queues(void);
 
 bool tfcan_enqueue_frame(TFCAN_Frame *frame);
 bool tfcan_dequeue_frame(TFCAN_Frame *frame);

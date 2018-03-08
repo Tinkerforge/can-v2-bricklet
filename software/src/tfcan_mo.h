@@ -35,6 +35,12 @@ typedef enum {
 	TFCAN_MO_TYPE_EXTENDED_REMOTE
 } TFCAN_MOType;
 
+// must match Bricklet API BufferType enum
+typedef enum {
+	TFCAN_BUFFER_TYPE_DATA = 0,
+	TFCAN_BUFFER_TYPE_REMOTE
+} TFCAN_BufferType;
+
 typedef enum {
 	TFCAN_MO_STATUS_RX_PENDING             = CAN_MO_MOSTAT_RXPND_Msk,
 	TFCAN_MO_STATUS_TX_PENDING             = CAN_MO_MOSTAT_TXPND_Msk,
@@ -98,7 +104,7 @@ void tfcan_mo_init_tx_fifo_base(CAN_MO_TypeDef *const mo, const uint8_t base_and
 
 void tfcan_mo_init_tx_fifo_slave(CAN_MO_TypeDef *const mo, const uint8_t base);
 
-void tfcan_mo_init_rx(CAN_MO_TypeDef *const mo);
+void tfcan_mo_init_rx(CAN_MO_TypeDef *const mo, const TFCAN_BufferType type);
 
 void tfcan_mo_init_rx_fifo_base(CAN_MO_TypeDef *const mo, const uint8_t base_and_bottom,
                                 const uint8_t top);
