@@ -41,6 +41,10 @@ typedef struct {
 } __attribute__((__packed__)) TFCAN_Frame; // 13 bytes
 
 typedef struct {
+	uint32_t baudrate; // [10000..10000000] bps
+	uint16_t sample_point; // [0..10000] 0.01 %
+	uint8_t sync_jump_width; // [1..4] // FIXME: bit-timing calculation assums this to be 1
+
 	CAN_MO_TypeDef *mo[TFCAN_MO_SIZE];
 
 	CAN_MO_TypeDef **tx_mo;
@@ -70,6 +74,7 @@ typedef struct {
 void tfcan_init(void);
 void tfcan_tick(void);
 
+void tfcan_reconfigure_bit_timing(void);
 void tfcan_reconfigure_queues(void);
 
 bool tfcan_enqueue_frame(TFCAN_Frame *frame);

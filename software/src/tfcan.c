@@ -32,30 +32,29 @@
 
 TFCAN tfcan;
 
-void IRQ_Hdlr_0(void) {
+//void IRQ_Hdlr_0(void) {
 	//logi("irq0: %b, %d\n\r", CAN->MSPND[0], XMC_CAN_FIFO_GetCurrentMO(&tfcan.mo[0]));
-}
+//}
 
 void tfcan_init(void) {
 	logi("TFCAN %u\n\r", sizeof(TFCAN));
 
 	memset(&tfcan, 0, sizeof(TFCAN));
 
+	tfcan.baudrate = 125000;
+	tfcan.sample_point = 8000;
+	tfcan.sync_jump_width = 1;
+
+	tfcan.last_debug = system_timer_get_ms();
+
 	// configure clock
 	XMC_CAN_Init(CAN, TFCAN_CLOCK_SOURCE, TFCAN_FREQUENCY);
 
-	// configure bit timing
-	const XMC_CAN_NODE_NOMINAL_BIT_TIME_CONFIG_t bit_time_config = {
-		.can_frequency = TFCAN_FREQUENCY,
-		.baudrate      = 125000, // 500kbps, [100Kbps..1000Kbps]
-		.sample_point  = 8000, // 80%, [0%..100%]
-		.sjw           = 1, // [1..4]
-	};
-
-	XMC_CAN_NODE_NominalBitTimeConfigure(TFCAN_NODE, &bit_time_config);
-
 	XMC_CAN_NODE_EnableConfigurationChange(TFCAN_NODE);
 	XMC_CAN_NODE_SetInitBit(TFCAN_NODE);
+
+	// configure bit-timing
+	tfcan_reconfigure_bit_timing();
 
 	// configure RX pin
 	const XMC_GPIO_CONFIG_t rx_pin_config = {
@@ -92,8 +91,6 @@ void tfcan_init(void) {
 
 	XMC_GPIO_Init(TFCAN_COM_LED_PIN, &led_pin_config);
 	XMC_GPIO_Init(TFCAN_ERROR_LED_PIN, &led_pin_config);
-
-	tfcan.last_debug = system_timer_get_ms();
 }
 
 void tfcan_tick(void) {
@@ -159,7 +156,6 @@ void tfcan_tick(void) {
 			// check RX backlog
 			if ((tfcan.rx_backlog_end + 1) % tfcan.rx_backlog_size == tfcan.rx_backlog_start) {
 				// FIXME: drop RX MO?
-
 				break; // RX backlog full
 			}
 
@@ -203,6 +199,84 @@ void tfcan_tick(void) {
 
 		tfcan.rx_mo_next_index[k] = rx_mo_next_index;
 	}
+}
+
+void tfcan_reconfigure_bit_timing(void) {
+	uint32_t best_div;
+	uint32_t best_brp;
+	uint32_t best_time_quanta = 0;
+	uint32_t best_baudrate_error = tfcan.baudrate;
+
+	// find best DIV8/BRP combination based on CAN frequency and baudrate
+	for (int32_t div = 8; div > 0; div -= 7) {
+		for (uint32_t brp = 1; brp <= 64; ++brp) {
+			const uint32_t frequency = (TFCAN_FREQUENCY * 10) / (brp * div); // 0.1 Hz
+			const uint32_t time_quanta = ((frequency / tfcan.baudrate) + 5) / 10;
+
+			if (time_quanta < 8 || time_quanta > 20) {
+				continue;
+			}
+
+			const uint32_t baudrate = frequency / (time_quanta * 10);
+			uint32_t baudrate_error;
+
+			if (baudrate >= tfcan.baudrate) {
+				baudrate_error = baudrate - tfcan.baudrate;
+			} else {
+				baudrate_error = tfcan.baudrate - baudrate;
+			}
+
+			if (baudrate_error < best_baudrate_error) {
+				best_div = div;
+				best_brp = brp;
+				best_time_quanta = time_quanta;
+				best_baudrate_error = baudrate_error;
+			}
+		}
+	}
+
+	if (best_time_quanta == 0) {
+		return; // this is just a safe-guard and will not happen for [10..10000] kbps
+	}
+
+	// find best TSEG1 based on sample-point configuration
+	uint32_t best_tseg1 = 0;
+	uint32_t best_sample_point_error = 10000; // 0.01 %
+
+	for (uint32_t tseg1 = 64; tseg1 >= 3; --tseg1) {
+		uint32_t sample_point = ((1 + tseg1) * 10000) / best_time_quanta;
+		uint32_t sample_point_error;
+
+		if (sample_point >= tfcan.sample_point) {
+			sample_point_error = sample_point - tfcan.sample_point;
+		} else {
+			sample_point_error = tfcan.sample_point - sample_point;
+		}
+
+		if (sample_point_error < best_sample_point_error) {
+			best_tseg1 = tseg1;
+			best_sample_point_error = sample_point_error;
+		}
+
+		if (sample_point < tfcan.sample_point) {
+			break;
+		}
+	}
+
+	if (best_tseg1 < 3) {
+		return; // this is just a safe-guard and will not happen for [10..10000] kbps
+	}
+
+	const uint32_t best_tseg2 = best_time_quanta - best_tseg1 - 1;
+
+	logi("baudrate %u, div %u, brp %u, tseg1 %u, tseg2 %u\n\r",
+	     tfcan.baudrate, best_div, best_brp, best_tseg1, best_tseg2);
+
+	TFCAN_NODE->NBTR = (((uint32_t)(best_brp - 1)              << CAN_NODE_NBTR_BRP_Pos)   & (uint32_t)CAN_NODE_NBTR_BRP_Msk) |
+	                   (((uint32_t)(tfcan.sync_jump_width - 1) << CAN_NODE_NBTR_SJW_Pos)   & (uint32_t)CAN_NODE_NBTR_SJW_Msk) |
+	                   (((uint32_t)(best_tseg1 - 1)            << CAN_NODE_NBTR_TSEG1_Pos) & (uint32_t)CAN_NODE_NBTR_TSEG1_Msk) |
+	                   (((uint32_t)(best_tseg2 - 1)            << CAN_NODE_NBTR_TSEG2_Pos) & (uint32_t)CAN_NODE_NBTR_TSEG2_Msk) |
+	                   (((uint32_t)(best_div != 0 ? 1 : 0)     << CAN_NODE_NBTR_DIV8_Pos)  & (uint32_t)CAN_NODE_NBTR_DIV8_Msk);
 }
 
 void tfcan_reconfigure_queues(void) {
