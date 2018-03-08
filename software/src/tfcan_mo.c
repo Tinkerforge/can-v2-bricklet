@@ -210,8 +210,13 @@ void tfcan_mo_set_data(CAN_MO_TypeDef *const mo, const uint8_t *const data,
 	mo->MOFCR = (mo->MOFCR & ~(uint32_t)CAN_MO_MOFCR_DLC_Msk) |
 	            (((uint32_t)length << CAN_MO_MOFCR_DLC_Pos) & CAN_MO_MOFCR_DLC_Msk);
 
-	mo->MODATAL = (uint32_t)data[0] | ((uint32_t)data[1] << 8) | ((uint32_t)data[2] << 16) | ((uint32_t)data[3] << 24);
-	mo->MODATAH = (uint32_t)data[4] | ((uint32_t)data[5] << 8) | ((uint32_t)data[6] << 16) | ((uint32_t)data[7] << 24);
+	if ((tfcan_mo_get_status(mo) & TFCAN_MO_STATUS_DIRECTION) != 0) {
+		mo->MODATAL = (uint32_t)data[0] | ((uint32_t)data[1] << 8) | ((uint32_t)data[2] << 16) | ((uint32_t)data[3] << 24);
+		mo->MODATAH = (uint32_t)data[4] | ((uint32_t)data[5] << 8) | ((uint32_t)data[6] << 16) | ((uint32_t)data[7] << 24);
+	} else {
+		mo->MODATAL = 0;
+		mo->MODATAH = 0;
+	}
 
 	tfcan_mo_change_status(mo, TFCAN_MO_RESET_STATUS_RX_TX_SELECTED |
 	                           TFCAN_MO_SET_STATUS_MESSAGE_VALID |
@@ -241,14 +246,18 @@ void tfcan_mo_get_identifier(CAN_MO_TypeDef *const mo, TFCAN_MOType *const type,
 
 void tfcan_mo_get_data(CAN_MO_TypeDef *const mo, uint8_t *const data,
                        uint8_t *const length) {
-	data[0] = mo->MODATAL & 0xFF;
-	data[1] = (mo->MODATAL >> 8) & 0xFF;
-	data[2] = (mo->MODATAL >> 16) & 0xFF;
-	data[3] = (mo->MODATAL >> 24) & 0xFF;
-	data[4] = mo->MODATAH & 0xFF;
-	data[5] = (mo->MODATAH >> 8) & 0xFF;
-	data[6] = (mo->MODATAH >> 16) & 0xFF;
-	data[7] = (mo->MODATAH >> 24) & 0xFF;
+	if ((tfcan_mo_get_status(mo) & TFCAN_MO_STATUS_DIRECTION) == 0) {
+		data[0] =  mo->MODATAL        & 0xFF;
+		data[1] = (mo->MODATAL >>  8) & 0xFF;
+		data[2] = (mo->MODATAL >> 16) & 0xFF;
+		data[3] = (mo->MODATAL >> 24) & 0xFF;
+		data[4] =  mo->MODATAH        & 0xFF;
+		data[5] = (mo->MODATAH >>  8) & 0xFF;
+		data[6] = (mo->MODATAH >> 16) & 0xFF;
+		data[7] = (mo->MODATAH >> 24) & 0xFF;
+	} else {
+		memset(data, 0, 8);
+	}
 
 	*length = (mo->MOFCR & CAN_MO_MOFCR_DLC_Msk) >> CAN_MO_MOFCR_DLC_Pos;
 }

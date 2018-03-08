@@ -77,8 +77,8 @@ void communication_init(void);
 #define CAN_V2_STATUS_LED_CONFIG_SHOW_STATUS 3
 
 // Function and callback IDs and structs
-#define FID_WRITE_FRAME 1
-#define FID_READ_FRAME 2
+#define FID_WRITE_FRAME_LOW_LEVEL 1
+#define FID_READ_FRAME_LOW_LEVEL 2
 #define FID_ENABLE_FRAME_READ_CALLBACK 3
 #define FID_DISABLE_FRAME_READ_CALLBACK 4
 #define FID_IS_FRAME_READ_CALLBACK_ENABLED 5
@@ -94,27 +94,27 @@ typedef struct {
 	TFPMessageHeader header;
 	uint8_t frame_type;
 	uint32_t identifier;
-	uint8_t data[8];
-	uint8_t length;
-} __attribute__((__packed__)) WriteFrame;
+	uint8_t data_length;
+	uint8_t data_data[15];
+} __attribute__((__packed__)) WriteFrameLowLevel;
 
 typedef struct {
 	TFPMessageHeader header;
 	bool success;
-} __attribute__((__packed__)) WriteFrame_Response;
+} __attribute__((__packed__)) WriteFrameLowLevel_Response;
 
 typedef struct {
 	TFPMessageHeader header;
-} __attribute__((__packed__)) ReadFrame;
+} __attribute__((__packed__)) ReadFrameLowLevel;
 
 typedef struct {
 	TFPMessageHeader header;
 	bool success;
 	uint8_t frame_type;
 	uint32_t identifier;
-	uint8_t data[8];
-	uint8_t length;
-} __attribute__((__packed__)) ReadFrame_Response;
+	uint8_t data_length;
+	uint8_t data_data[15];
+} __attribute__((__packed__)) ReadFrameLowLevel_Response;
 
 typedef struct {
 	TFPMessageHeader header;
@@ -195,8 +195,8 @@ typedef struct {
 
 
 // Function prototypes
-BootloaderHandleMessageResponse write_frame(const WriteFrame *data, WriteFrame_Response *response);
-BootloaderHandleMessageResponse read_frame(const ReadFrame *data, ReadFrame_Response *response);
+BootloaderHandleMessageResponse write_frame_low_level(const WriteFrameLowLevel *data, WriteFrameLowLevel_Response *response);
+BootloaderHandleMessageResponse read_frame_low_level(const ReadFrameLowLevel *data, ReadFrameLowLevel_Response *response);
 BootloaderHandleMessageResponse enable_frame_read_callback(const EnableFrameReadCallback *data);
 BootloaderHandleMessageResponse disable_frame_read_callback(const DisableFrameReadCallback *data);
 BootloaderHandleMessageResponse is_frame_read_callback_enabled(const IsFrameReadCallbackEnabled *data, IsFrameReadCallbackEnabled_Response *response);

@@ -17,8 +17,12 @@ if __name__ == "__main__":
     ipcon.connect(HOST, PORT) # Connect to brickd
     # Don't use device before ipcon is connected
 
-    for i in range(50):
-        if not can.write_frame(can.FRAME_TYPE_STANDARD_DATA, 0x321, [1, 2, 3, 4, 5, 6, 7, 8], 8):
-            print(i, 'failed')
+    if False:
+        for i in range(50):
+            if not can.write_frame(can.FRAME_TYPE_STANDARD_DATA, 0x321, [1, 2, 3, 4, 5, 6, 7, 8]):
+                print(i, 'failed')
+
+    can.write_frame(can.FRAME_TYPE_STANDARD_DATA, 0x321, [1, 2, 3, 4, 5, 6, 7, 8])
+    can.write_frame(can.FRAME_TYPE_EXTENDED_REMOTE, (((1 << 11) - 1) << 18) + 1, [1, 2, 3, 4, 5])
 
     ipcon.disconnect()

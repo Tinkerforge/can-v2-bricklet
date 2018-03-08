@@ -29,8 +29,8 @@
 
 BootloaderHandleMessageResponse handle_message(const void *message, void *response) {
 	switch(tfp_get_fid_from_message(message)) {
-		case FID_WRITE_FRAME: return write_frame(message, response);
-		case FID_READ_FRAME: return read_frame(message, response);
+		case FID_WRITE_FRAME_LOW_LEVEL: return write_frame_low_level(message, response);
+		case FID_READ_FRAME_LOW_LEVEL: return read_frame_low_level(message, response);
 		case FID_ENABLE_FRAME_READ_CALLBACK: return enable_frame_read_callback(message);
 		case FID_DISABLE_FRAME_READ_CALLBACK: return disable_frame_read_callback(message);
 		case FID_IS_FRAME_READ_CALLBACK_ENABLED: return is_frame_read_callback_enabled(message, response);
@@ -43,9 +43,9 @@ BootloaderHandleMessageResponse handle_message(const void *message, void *respon
 	}
 }
 
-BootloaderHandleMessageResponse write_frame(const WriteFrame *data, WriteFrame_Response *response) {
+BootloaderHandleMessageResponse write_frame_low_level(const WriteFrameLowLevel *data, WriteFrameLowLevel_Response *response) {
 	if (data->frame_type > CAN_V2_FRAME_TYPE_EXTENDED_REMOTE ||
-	    data->length > 15) {
+	    data->data_length > 15) {
 		return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
 	}
 
@@ -63,27 +63,30 @@ BootloaderHandleMessageResponse write_frame(const WriteFrame *data, WriteFrame_R
 
 	frame.mo_type    = data->frame_type;
 	frame.identifier = data->identifier;
-	memcpy(frame.data, data->data, data->length);
-	frame.length     = data->length;
+	memcpy(frame.data, data->data_data, MIN(data->data_length, sizeof(frame.data)));
+	frame.length     = data->data_length;
 
-	response->header.length = sizeof(WriteFrame_Response);
+	response->header.length = sizeof(WriteFrameLowLevel_Response);
 	response->success       = tfcan_enqueue_frame(&frame);
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
 
-BootloaderHandleMessageResponse read_frame(const ReadFrame *data, ReadFrame_Response *response) {
+BootloaderHandleMessageResponse read_frame_low_level(const ReadFrameLowLevel *data, ReadFrameLowLevel_Response *response) {
 	// Need to zero the whole frame here because tfcan_dequeue_frame
 	// will not touch it if there is no frame to be read
 	TFCAN_Frame frame = {{0}};
 
-	response->header.length = sizeof(ReadFrame_Response);
+	response->header.length = sizeof(ReadFrameLowLevel_Response);
 	response->success       = tfcan_dequeue_frame(&frame);
+
+	const uint8_t length = MIN(frame.length, 8);
+
 	response->frame_type    = frame.mo_type;
 	response->identifier    = frame.identifier;
-	memcpy(response->data, frame.data, MIN(frame.length, 8));
-	memset(&response->data[frame.length], 0, 8 - MIN(frame.length, 8));
-	response->length        = frame.length;
+	response->data_length   = frame.length;
+	memcpy(response->data_data, frame.data, length);
+	memset(&response->data_data[length], 0, sizeof(response->data_data) - length);
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
