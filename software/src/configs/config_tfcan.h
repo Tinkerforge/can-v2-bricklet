@@ -32,9 +32,6 @@
 #define TFCAN_CLOCK_SOURCE               XMC_CAN_CANCLKSRC_MCLK
 #define TFCAN_FREQUENCY                  48000000
 
-#define TFCAN_NODE                       CAN_NODE0
-#define TFCAN_NODE_INDEX                 0
-
 #define TFCAN_TX_PIN                     P0_4
 #define TFCAN_TX_SRQ_INDEX               0
 #define TFCAN_TX_IRQ_INDEX               0
@@ -43,6 +40,8 @@
 #define TFCAN_RECEIVE_INPUT              XMC_CAN_NODE_RECEIVE_INPUT_RXDCB
 #define TFCAN_RX_SRQ_INDEX               0
 #define TFCAN_RX_IRQ_INDEX               0
+
+#define TFCAN_NODE_SIZE                  2
 
 #define TFCAN_MO_SIZE                    32
 #define TFCAN_BACKLOG_SIZE               768 // 13-byte frames

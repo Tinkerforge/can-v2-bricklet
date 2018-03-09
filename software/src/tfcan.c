@@ -44,17 +44,18 @@ void tfcan_init(void) {
 	tfcan.baudrate = 125000;
 	tfcan.sample_point = 8000;
 	tfcan.sync_jump_width = 1;
+	tfcan.transceiver_mode = TFCAN_TRANSCEIVER_MODE_NORMAL;
+
+	tfcan.node[0] = CAN_NODE0;
+	tfcan.node[1] = CAN_NODE1;
 
 	tfcan.last_debug = system_timer_get_ms();
 
 	// configure clock
 	XMC_CAN_Init(CAN, TFCAN_CLOCK_SOURCE, TFCAN_FREQUENCY);
 
-	XMC_CAN_NODE_EnableConfigurationChange(TFCAN_NODE);
-	XMC_CAN_NODE_SetInitBit(TFCAN_NODE);
-
-	// configure bit-timing
-	tfcan_reconfigure_bit_timing();
+	// enter config mode
+	tfcan_set_config_mode(true);
 
 	// configure RX pin
 	const XMC_GPIO_CONFIG_t rx_pin_config = {
@@ -63,7 +64,7 @@ void tfcan_init(void) {
 	};
 
 	XMC_GPIO_Init(TFCAN_RX_PIN, &rx_pin_config);
-	XMC_CAN_NODE_SetReceiveInput(TFCAN_NODE, TFCAN_RECEIVE_INPUT);
+	XMC_CAN_NODE_SetReceiveInput(tfcan.node[0], TFCAN_RECEIVE_INPUT);
 
 	// configure TX pin
 	const XMC_GPIO_CONFIG_t tx_pin_config = {
@@ -73,8 +74,11 @@ void tfcan_init(void) {
 
 	XMC_GPIO_Init(TFCAN_TX_PIN, &tx_pin_config);
 
-	XMC_CAN_NODE_DisableConfigurationChange(TFCAN_NODE);
-	XMC_CAN_NODE_ResetInitBit(TFCAN_NODE);
+	// configure transceiver
+	tfcan_reconfigure_transceiver();
+
+	// leave config mdoe
+	tfcan_set_config_mode(false);
 
 	// configure TX interrupt
 	//NVIC_EnableIRQ(TFCAN_TX_IRQ_INDEX);
@@ -201,7 +205,22 @@ void tfcan_tick(void) {
 	}
 }
 
-void tfcan_reconfigure_bit_timing(void) {
+void tfcan_set_config_mode(const bool enable) {
+	if (enable) {
+		for (uint8_t i = 0; i < TFCAN_NODE_SIZE; ++i) {
+			XMC_CAN_NODE_EnableConfigurationChange(tfcan.node[i]);
+			XMC_CAN_NODE_SetInitBit(tfcan.node[i]);
+		}
+	} else {
+		for (uint8_t i = 0; i < TFCAN_NODE_SIZE; ++i) {
+			XMC_CAN_NODE_DisableConfigurationChange(tfcan.node[i]);
+			XMC_CAN_NODE_ResetInitBit(tfcan.node[i]);
+		}
+	}
+}
+
+// requires config mode
+void tfcan_reconfigure_transceiver(void) {
 	uint32_t best_div;
 	uint32_t best_brp;
 	uint32_t best_time_quanta = 0;
@@ -210,7 +229,7 @@ void tfcan_reconfigure_bit_timing(void) {
 	// find best DIV8/BRP combination based on CAN frequency and baudrate
 	for (int32_t div = 8; div > 0; div -= 7) {
 		for (uint32_t brp = 1; brp <= 64; ++brp) {
-			const uint32_t frequency = (TFCAN_FREQUENCY * 10) / (brp * div); // 0.1 Hz
+			const uint32_t frequency = (TFCAN_FREQUENCY * 10) / (brp * div); // in 0.1 Hz
 			const uint32_t time_quanta = ((frequency / tfcan.baudrate) + 5) / 10;
 
 			if (time_quanta < 8 || time_quanta > 20) {
@@ -241,7 +260,7 @@ void tfcan_reconfigure_bit_timing(void) {
 
 	// find best TSEG1 based on sample-point configuration
 	uint32_t best_tseg1 = 0;
-	uint32_t best_sample_point_error = 10000; // 0.01 %
+	uint32_t best_sample_point_error = 10000; // in 0.01 %
 
 	for (uint32_t tseg1 = 16; tseg1 >= 3; --tseg1) {
 		const uint32_t sample_point = ((1 + tseg1) * 10000) / best_time_quanta;
@@ -272,14 +291,36 @@ void tfcan_reconfigure_bit_timing(void) {
 	logi("baudrate %u, div %u, brp %u, tseg1 %u, tseg2 %u\n\r",
 	     tfcan.baudrate, best_div, best_brp, best_tseg1, best_tseg2);
 
-	TFCAN_NODE->NBTR = (((uint32_t)(best_brp - 1)              << CAN_NODE_NBTR_BRP_Pos)   & (uint32_t)CAN_NODE_NBTR_BRP_Msk) |
-	                   (((uint32_t)(tfcan.sync_jump_width - 1) << CAN_NODE_NBTR_SJW_Pos)   & (uint32_t)CAN_NODE_NBTR_SJW_Msk) |
-	                   (((uint32_t)(best_tseg1 - 1)            << CAN_NODE_NBTR_TSEG1_Pos) & (uint32_t)CAN_NODE_NBTR_TSEG1_Msk) |
-	                   (((uint32_t)(best_tseg2 - 1)            << CAN_NODE_NBTR_TSEG2_Pos) & (uint32_t)CAN_NODE_NBTR_TSEG2_Msk) |
-	                   (((uint32_t)(best_div != 0 ? 1 : 0)     << CAN_NODE_NBTR_DIV8_Pos)  & (uint32_t)CAN_NODE_NBTR_DIV8_Msk);
+	const uint32_t nbtr = (((uint32_t)(best_brp - 1)              << CAN_NODE_NBTR_BRP_Pos)   & (uint32_t)CAN_NODE_NBTR_BRP_Msk) |
+	                      (((uint32_t)(tfcan.sync_jump_width - 1) << CAN_NODE_NBTR_SJW_Pos)   & (uint32_t)CAN_NODE_NBTR_SJW_Msk) |
+	                      (((uint32_t)(best_tseg1 - 1)            << CAN_NODE_NBTR_TSEG1_Pos) & (uint32_t)CAN_NODE_NBTR_TSEG1_Msk) |
+	                      (((uint32_t)(best_tseg2 - 1)            << CAN_NODE_NBTR_TSEG2_Pos) & (uint32_t)CAN_NODE_NBTR_TSEG2_Msk) |
+	                      (((uint32_t)(best_div != 0 ? 1 : 0)     << CAN_NODE_NBTR_DIV8_Pos)  & (uint32_t)CAN_NODE_NBTR_DIV8_Msk);
+
+	for (uint8_t i = 0; i < TFCAN_NODE_SIZE; ++i) {
+		tfcan.node[i]->NBTR = nbtr;
+	}
+
+	// loopback mode
+	if (tfcan.transceiver_mode == TFCAN_TRANSCEIVER_MODE_LOOPBACK) {
+		for (uint8_t i = 0; i < TFCAN_NODE_SIZE; ++i) {
+			XMC_CAN_NODE_EnableLoopBack(tfcan.node[i]);
+		}
+	} else {
+		for (uint8_t i = 0; i < TFCAN_NODE_SIZE; ++i) {
+			XMC_CAN_NODE_DisableLoopBack(tfcan.node[i]);
+		}
+	}
 }
 
+// does not require config mode
 void tfcan_reconfigure_queues(void) {
+	for (uint8_t i = 0; i < TFCAN_MO_SIZE; ++i) {
+		tfcan.rx_mo_size[i] = 0;
+		tfcan.rx_mo_next_index[i] = 0;
+		tfcan.rx_mo_type[i] = TFCAN_BUFFER_TYPE_DATA;
+	}
+
 	// reset queues
 	tfcan.tx_mo_size = TFCAN_MO_SIZE / 2;
 	tfcan.tx_mo_next_index = 0;
@@ -302,16 +343,27 @@ void tfcan_reconfigure_queues(void) {
 	tfcan.rx_backlog_start = 0;
 	tfcan.rx_backlog_end = 0;
 
+	const uint8_t node_tx_index = 0;
+	uint8_t node_rx_index = 0;
+
+	if (tfcan.transceiver_mode == TFCAN_TRANSCEIVER_MODE_LOOPBACK) {
+		node_rx_index = 1;
+	}
+
 	// reset MOs
-	XMC_CAN_NODE_EnableConfigurationChange(TFCAN_NODE);
-	XMC_CAN_NODE_SetInitBit(TFCAN_NODE);
+	for (uint8_t i = 0; i < TFCAN_NODE_SIZE; ++i) {
+		XMC_CAN_NODE_EnableConfigurationChange(tfcan.node[i]);
+		XMC_CAN_NODE_SetInitBit(tfcan.node[i]);
+	}
 
 	while (!XMC_CAN_IsPanelControlReady(CAN)) {}
 	XMC_CAN_PanelControl(CAN, XMC_CAN_PANCMD_INIT_LIST, 0, 0);
 	while (!XMC_CAN_IsPanelControlReady(CAN)) {}
 
-	XMC_CAN_NODE_DisableConfigurationChange(TFCAN_NODE);
-	XMC_CAN_NODE_ResetInitBit(TFCAN_NODE);
+	for (uint8_t i = 0; i < TFCAN_NODE_SIZE; ++i) {
+		XMC_CAN_NODE_DisableConfigurationChange(tfcan.node[i]);
+		XMC_CAN_NODE_ResetInitBit(tfcan.node[i]);
+	}
 
 	// configure TX MOs
 	uint8_t mo_offset = 0;
@@ -321,7 +373,7 @@ void tfcan_reconfigure_queues(void) {
 	for (uint8_t i = 0; i < tfcan.tx_mo_size; ++i) {
 		tfcan.tx_mo[i] = (CAN_MO_TypeDef *)&CAN_MO->MO[mo_offset + i];
 
-		XMC_CAN_AllocateMOtoNodeList(CAN, TFCAN_NODE_INDEX, mo_offset + i);
+		XMC_CAN_AllocateMOtoNodeList(CAN, node_tx_index, mo_offset + i);
 		while (!XMC_CAN_IsPanelControlReady(CAN)) {}
 
 		tfcan_mo_init_tx(tfcan.tx_mo[i]);
@@ -352,7 +404,7 @@ void tfcan_reconfigure_queues(void) {
 		for (uint8_t i = 0; i < rx_mo_size; ++i) {
 			rx_mo[i] = (CAN_MO_TypeDef *)&CAN_MO->MO[mo_offset + i];
 
-			XMC_CAN_AllocateMOtoNodeList(CAN, TFCAN_NODE_INDEX, mo_offset + i);
+			XMC_CAN_AllocateMOtoNodeList(CAN, node_rx_index, mo_offset + i);
 			while (!XMC_CAN_IsPanelControlReady(CAN)) {}
 
 			tfcan_mo_init_rx(rx_mo[i], rx_mo_type);

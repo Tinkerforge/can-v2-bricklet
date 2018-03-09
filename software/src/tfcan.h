@@ -31,6 +31,13 @@
 
 #include "tfcan_mo.h"
 
+// must match Bricklet API TransceiverMode enum
+typedef enum {
+	TFCAN_TRANSCEIVER_MODE_NORMAL = 0,
+	TFCAN_TRANSCEIVER_MODE_LOOPBACK,
+	TFCAN_TRANSCEIVER_MODE_READ_ONLY
+} TFCAN_TransceiverMode;
+
 typedef struct {
 	struct {
 		uint32_t mo_type:3; // TFCAN_MOType
@@ -44,6 +51,9 @@ typedef struct {
 	uint32_t baudrate; // [10000..10000000] bps
 	uint16_t sample_point; // [0..10000] 0.01 %
 	uint8_t sync_jump_width; // [1..4] // FIXME: bit-timing calculation assums this to be 1
+	TFCAN_TransceiverMode transceiver_mode;
+
+	CAN_NODE_TypeDef *node[TFCAN_NODE_SIZE];
 
 	CAN_MO_TypeDef *mo[TFCAN_MO_SIZE];
 
@@ -74,7 +84,9 @@ typedef struct {
 void tfcan_init(void);
 void tfcan_tick(void);
 
-void tfcan_reconfigure_bit_timing(void);
+void tfcan_set_config_mode(const bool enable);
+
+void tfcan_reconfigure_transceiver(void);
 void tfcan_reconfigure_queues(void);
 
 bool tfcan_enqueue_frame(TFCAN_Frame *frame);
