@@ -50,7 +50,7 @@ typedef struct {
 typedef struct {
 	uint32_t baudrate; // [10000..10000000] bps
 	uint16_t sample_point; // [0..10000] 0.01 %
-	uint8_t sync_jump_width; // [1..4] // FIXME: bit-timing calculation assums this to be 1
+	uint8_t sync_jump_width; // [1..4] // FIXME: bit-timing calculation assumes this to be 1
 	TFCAN_TransceiverMode transceiver_mode;
 
 	CAN_NODE_TypeDef *node[TFCAN_NODE_SIZE];
