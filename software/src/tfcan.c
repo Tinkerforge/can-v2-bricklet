@@ -243,8 +243,8 @@ void tfcan_reconfigure_bit_timing(void) {
 	uint32_t best_tseg1 = 0;
 	uint32_t best_sample_point_error = 10000; // 0.01 %
 
-	for (uint32_t tseg1 = 64; tseg1 >= 3; --tseg1) {
-		uint32_t sample_point = ((1 + tseg1) * 10000) / best_time_quanta;
+	for (uint32_t tseg1 = 16; tseg1 >= 3; --tseg1) {
+		const uint32_t sample_point = ((1 + tseg1) * 10000) / best_time_quanta;
 		uint32_t sample_point_error;
 
 		if (sample_point >= tfcan.sample_point) {
