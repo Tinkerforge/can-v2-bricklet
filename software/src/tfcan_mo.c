@@ -150,7 +150,7 @@ void tfcan_mo_init_rx_fifo_base(CAN_MO_TypeDef *const mo, const uint8_t base_and
 	                                       CAN_MO_MOFGPR_TOP_Msk |
 	                                       CAN_MO_MOFGPR_CUR_Msk)) |
 	             (((uint32_t)base_and_bottom << CAN_MO_MOFGPR_CUR_Pos) & (uint32_t)CAN_MO_MOFGPR_CUR_Msk) |
-	             (((uint32_t)top << CAN_MO_MOFGPR_TOP_Pos) & (uint32_t)CAN_MO_MOFGPR_TOP_Msk) |
+	             (((uint32_t)top             << CAN_MO_MOFGPR_TOP_Pos) & (uint32_t)CAN_MO_MOFGPR_TOP_Msk) |
 	             (((uint32_t)base_and_bottom << CAN_MO_MOFGPR_BOT_Pos) & (uint32_t)CAN_MO_MOFGPR_BOT_Msk);
 }
 
