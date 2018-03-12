@@ -45,6 +45,7 @@ void tfcan_init(void) {
 	tfcan.sample_point = 8000;
 	tfcan.sync_jump_width = 1;
 	tfcan.transceiver_mode = TFCAN_TRANSCEIVER_MODE_NORMAL;
+	tfcan.write_buffer_timeout = 3000;
 
 	tfcan.node[0] = CAN_NODE0;
 	tfcan.node[1] = CAN_NODE1;
@@ -103,20 +104,28 @@ void tfcan_tick(void) {
 			logi("st-tx %02d %032_8b\n\r", i, tfcan_mo_get_status(tfcan.tx_mo[i]));
 		}
 
-		logi("fgpr-tx %032_8b\n\r", tfcan.tx_mo[0]->MOFGPR);
+		if (tfcan.tx_mo_size > 0) {
+			logi("fgpr-tx %032_8b\n\r", tfcan.tx_mo[0]->MOFGPR);
+		}
+
+		logi("nx-tx %d\n\r", tfcan.tx_mo_next_index);
 
 		for (uint8_t k = 0; k < TFCAN_MO_SIZE; ++k) {
 			for (uint8_t i = 0; i < tfcan.rx_mo_size[k]; ++i) {
-				logi("st-rx %02d:%02d %032_8b\n\r", k, i, tfcan_mo_get_status(tfcan.rx_mo[k][i]));
+				logi("st-rx:%02d %02d %032_8b\n\r", k, i, tfcan_mo_get_status(tfcan.rx_mo[k][i]));
 			}
 
 			if (tfcan.rx_mo_size[k] > 0) {
-				logi("fgpr-rx %02d %032_8b\n\r", k, tfcan.rx_mo[k][0]->MOFGPR);
+				logi("fgpr-rx:%02d %032_8b\n\r", k, tfcan.rx_mo[k][0]->MOFGPR);
+				logi("nx-rx:%02d %d\n\r", k, tfcan.rx_mo_next_index[k]);
 			}
 		}
 
+		uartbb_printf("<<<<<<\n\r");
 		tfcan.last_debug = system_timer_get_ms();
 	}*/
+
+	tfcan_check_tx_timeout();
 
 	// write at most TX FIFO size frames
 	for (uint8_t i = 0; i < tfcan.tx_mo_size; ++i) {
@@ -127,7 +136,7 @@ void tfcan_tick(void) {
 
 		// check TX FIFO
 		CAN_MO_TypeDef *tx_mo_next = tfcan.tx_mo[tfcan.tx_mo_next_index];
-		uint32_t status = tfcan_mo_get_status(tx_mo_next);
+		const uint32_t status = tfcan_mo_get_status(tx_mo_next);
 
 		if ((status & TFCAN_MO_STATUS_TX_REQUEST) != 0) {
 			break; // TX FIFO full
@@ -146,6 +155,7 @@ void tfcan_tick(void) {
 		// schedule MO for transmission
 		tfcan_mo_change_status(tx_mo_next, TFCAN_MO_SET_STATUS_TX_REQUEST);
 
+		tfcan.tx_mo_timestamp[tfcan.tx_mo_next_index] = system_timer_get_ms();
 		tfcan.tx_mo_next_index = (tfcan.tx_mo_next_index + 1) % tfcan.tx_mo_size;
 	}
 
@@ -325,6 +335,10 @@ void tfcan_reconfigure_queues(void) {
 	tfcan.tx_mo_size = TFCAN_MO_SIZE / 2;
 	tfcan.tx_mo_next_index = 0;
 
+	tfcan.tx_mo_timeout_pending = false;
+	tfcan.tx_mo_timeout_index = 0;
+	tfcan.tx_mo_timeout_timestamp = 0;
+
 	tfcan.rx_mo_size[0] = TFCAN_MO_SIZE / 4;
 	tfcan.rx_mo_next_index[0] = 0;
 	tfcan.rx_mo_type[0] = TFCAN_BUFFER_TYPE_DATA;
@@ -343,11 +357,11 @@ void tfcan_reconfigure_queues(void) {
 	tfcan.rx_backlog_start = 0;
 	tfcan.rx_backlog_end = 0;
 
-	const uint8_t node_tx_index = 0;
-	uint8_t node_rx_index = 0;
+	const uint8_t tx_node_index = 0;
+	uint8_t rx_node_index = 0;
 
 	if (tfcan.transceiver_mode == TFCAN_TRANSCEIVER_MODE_LOOPBACK) {
-		node_rx_index = 1;
+		rx_node_index = 1;
 	}
 
 	// reset MOs
@@ -373,7 +387,7 @@ void tfcan_reconfigure_queues(void) {
 	for (uint8_t i = 0; i < tfcan.tx_mo_size; ++i) {
 		tfcan.tx_mo[i] = (CAN_MO_TypeDef *)&CAN_MO->MO[mo_offset + i];
 
-		XMC_CAN_AllocateMOtoNodeList(CAN, node_tx_index, mo_offset + i);
+		XMC_CAN_AllocateMOtoNodeList(CAN, tx_node_index, mo_offset + i);
 		while (!XMC_CAN_IsPanelControlReady(CAN)) {}
 
 		tfcan_mo_init_tx(tfcan.tx_mo[i]);
@@ -404,7 +418,7 @@ void tfcan_reconfigure_queues(void) {
 		for (uint8_t i = 0; i < rx_mo_size; ++i) {
 			rx_mo[i] = (CAN_MO_TypeDef *)&CAN_MO->MO[mo_offset + i];
 
-			XMC_CAN_AllocateMOtoNodeList(CAN, node_rx_index, mo_offset + i);
+			XMC_CAN_AllocateMOtoNodeList(CAN, rx_node_index, mo_offset + i);
 			while (!XMC_CAN_IsPanelControlReady(CAN)) {}
 
 			tfcan_mo_init_rx(rx_mo[i], rx_mo_type);
@@ -422,6 +436,93 @@ void tfcan_reconfigure_queues(void) {
 		}
 
 		mo_offset += rx_mo_size;
+	}
+}
+
+void tfcan_check_tx_timeout(void) {
+	if (tfcan.write_buffer_timeout <= 0 || tfcan.tx_mo_size == 0) {
+		return;
+	}
+
+	if (!tfcan.tx_mo_timeout_pending) {
+		// reading MOFGPR.CUR has a race-condition, because it can be changed by
+		// hardware at any time, but the actual value will always be between the
+		// last read value and the tx_mo_next_index value, because MOFGPR.CUR
+		// can only increase, but not past tx_mo_next_index
+		tfcan.tx_mo_timeout_index = tfcan_mo_get_tx_fifo_current(tfcan.tx_mo[0]);
+
+		CAN_MO_TypeDef *mo = tfcan.tx_mo[tfcan.tx_mo_timeout_index];
+		uint32_t status = tfcan_mo_get_status(mo);
+
+		if ((status & TFCAN_MO_STATUS_TX_REQUEST) == 0) {
+			// either TX FIFO is empty or MOFGPR.CUR changed after reading
+			// it. in both cases no timeout can occur, because either no
+			// frame is to be transmitted or the current frame has just been
+			// transmitted
+			const uint8_t index = tfcan_mo_get_tx_fifo_current(tfcan.tx_mo[0]);
+
+			if (tfcan.tx_mo_timeout_index != index) {
+				logi("tx %d timeout? current changed to %u\n\r", tfcan.tx_mo_timeout_index, index);
+			}
+
+			return;
+		}
+
+		if (!system_timer_is_time_elapsed_ms(tfcan.tx_mo_timestamp[tfcan.tx_mo_timeout_index],
+		                                     tfcan.write_buffer_timeout)) {
+			// current MO is not timed-out yet, therefore MOs further back
+			// in the FIFO cannot be timed-out yet either
+			return;
+		}
+
+		tfcan.tx_mo_timeout_pending = true;
+		tfcan.tx_mo_timeout_timestamp = system_timer_get_ms();
+
+		logi("tx %d timeout!\n\r", tfcan.tx_mo_timeout_index);
+
+		// disable transmission to ensure consitent register content while
+		// modifying MOFGPR.CUR and MOSTAT.TXEN1
+		tfcan.node[0]->NCR |= (uint32_t)CAN_NODE_NCR_TXDIS_Msk;
+
+		// clear MOSTAT.TXRQ and MOSTAT.RTSEL for timed-out MO to stop
+		// TX FIFO processing. see XMC 1400 datasheet figure 18-19 about the
+		// MO transmission:
+		//
+		// - if the MO hasn't won acceptance filtering yet, then it cannot
+		//   win it now, because TXRQ is not set
+		// - if the MO is being copied to internal transmit buffer then this
+		//   will be aborted because TXRQ wasn't always set during the copy
+		//   process
+		// - if the MO got copied to the internal transmit buffer then the
+		//   first RTSEL check will fail now
+		// - if the internal buffer was successfully transmitted then the
+		//   second RTSEL check will fail now
+		// - if the second RTSEL check passed, then the TX FIFO cannot be
+		//   stopped anymore from modifying MOFGPR.CUR and MOSTAT.TXEN1. handle
+		//   this by waiting 2ms to let this settle
+		tfcan_mo_change_status(mo, TFCAN_MO_RESET_STATUS_TX_REQUEST |
+		                           TFCAN_MO_RESET_STATUS_RX_TX_SELECTED);
+	} else if (system_timer_is_time_elapsed_ms(tfcan.tx_mo_timeout_timestamp,
+	                                           TFCAN_TX_TIMEOUT_SETTLE_DURATION)) {
+		const uint8_t index = tfcan_mo_get_tx_fifo_current(tfcan.tx_mo[0]);
+
+		// check if MOFGPR.CUR changed during the settle period, if not advance
+		// TX FIFO read pointer, if it did then no actual timout occured
+		if (tfcan.tx_mo_timeout_index == index) {
+			CAN_MO_TypeDef *mo = tfcan.tx_mo[tfcan.tx_mo_timeout_index];
+			const uint8_t index_next = (tfcan.tx_mo_timeout_index + 1) % tfcan.tx_mo_size;
+			CAN_MO_TypeDef *mo_next = tfcan.tx_mo[index_next];
+
+			tfcan_mo_change_status(mo, TFCAN_MO_RESET_STATUS_TX_ENABLE1);
+			tfcan_mo_set_tx_fifo_current(tfcan.tx_mo[0], index_next);
+			tfcan_mo_change_status(mo_next, TFCAN_MO_SET_STATUS_TX_ENABLE1);
+		} else if (tfcan.tx_mo_timeout_index != index) {
+			logi("tx %d timeout! current changed to %u\n\r", tfcan.tx_mo_timeout_index, index);
+		}
+
+		// re-enable transmission
+		tfcan.tx_mo_timeout_pending = false;
+		tfcan.node[0]->NCR &= ~(uint32_t)CAN_NODE_NCR_TXDIS_Msk;
 	}
 }
 

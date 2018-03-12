@@ -112,7 +112,6 @@ void tfcan_mo_init_rx_fifo_base(CAN_MO_TypeDef *const mo, const uint8_t base_and
 void tfcan_mo_init_rx_fifo_slave(CAN_MO_TypeDef *const mo, const uint8_t base);
 
 uint32_t tfcan_mo_get_status(const CAN_MO_TypeDef *const mo);
-
 void tfcan_mo_change_status(CAN_MO_TypeDef *const mo, const uint32_t mask);
 
 void tfcan_mo_set_irq_pointer(CAN_MO_TypeDef *const mo,
@@ -132,5 +131,8 @@ void tfcan_mo_get_identifier(CAN_MO_TypeDef *const mo, TFCAN_MOType * consttype,
 
 void tfcan_mo_get_data(CAN_MO_TypeDef *const mo, uint8_t *const data,
                        uint8_t *const length);
+
+void tfcan_mo_set_tx_fifo_current(CAN_MO_TypeDef *const mo, const uint8_t current);
+uint8_t tfcan_mo_get_tx_fifo_current(CAN_MO_TypeDef *const mo);
 
 #endif

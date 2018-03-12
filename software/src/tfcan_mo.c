@@ -261,3 +261,12 @@ void tfcan_mo_get_data(CAN_MO_TypeDef *const mo, uint8_t *const data,
 
 	*length = (mo->MOFCR & CAN_MO_MOFCR_DLC_Msk) >> CAN_MO_MOFCR_DLC_Pos;
 }
+
+void tfcan_mo_set_tx_fifo_current(CAN_MO_TypeDef *const mo, const uint8_t current) {
+	mo->MOFGPR = (mo->MOFGPR & ~(uint32_t)(CAN_MO_MOFGPR_CUR_Msk)) |
+	             (((uint32_t)current << CAN_MO_MOFGPR_CUR_Pos) & (uint32_t)CAN_MO_MOFGPR_CUR_Msk);
+}
+
+uint8_t tfcan_mo_get_tx_fifo_current(CAN_MO_TypeDef *const mo) {
+	return (uint8_t)((uint32_t)(mo->MOFGPR & CAN_MO_MOFGPR_CUR_Msk) >> CAN_MO_MOFGPR_CUR_Pos);
+}

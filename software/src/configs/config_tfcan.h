@@ -35,6 +35,7 @@
 #define TFCAN_TX_PIN                     P0_4
 #define TFCAN_TX_SRQ_INDEX               0
 #define TFCAN_TX_IRQ_INDEX               0
+#define TFCAN_TX_TIMEOUT_SETTLE_DURATION 2 // milliseconds
 
 #define TFCAN_RX_PIN                     P0_5
 #define TFCAN_RECEIVE_INPUT              XMC_CAN_NODE_RECEIVE_INPUT_RXDCB

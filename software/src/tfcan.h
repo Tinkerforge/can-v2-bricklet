@@ -52,6 +52,7 @@ typedef struct {
 	uint16_t sample_point; // [0..10000] 0.01 %
 	uint8_t sync_jump_width; // [1..4] // FIXME: bit-timing calculation assumes this to be 1
 	TFCAN_TransceiverMode transceiver_mode;
+	int32_t write_buffer_timeout; // < 0 (single-shot), = 0 (infinite), > 0 (milliseconds)
 
 	CAN_NODE_TypeDef *node[TFCAN_NODE_SIZE];
 
@@ -60,6 +61,11 @@ typedef struct {
 	CAN_MO_TypeDef **tx_mo;
 	uint8_t tx_mo_size; // [1..TFCAN_MO_SIZE-1]
 	uint8_t tx_mo_next_index;
+	uint32_t tx_mo_timestamp[TFCAN_MO_SIZE];
+
+	bool tx_mo_timeout_pending;
+	uint8_t tx_mo_timeout_index;
+	uint32_t tx_mo_timeout_timestamp;
 
 	CAN_MO_TypeDef **rx_mo[TFCAN_MO_SIZE];
 	uint8_t rx_mo_size[TFCAN_MO_SIZE]; // [1..TFCAN_MO_SIZE-1]
@@ -88,6 +94,8 @@ void tfcan_set_config_mode(const bool enable);
 
 void tfcan_reconfigure_transceiver(void);
 void tfcan_reconfigure_queues(void);
+
+void tfcan_check_tx_timeout(void);
 
 bool tfcan_enqueue_frame(TFCAN_Frame *frame);
 bool tfcan_dequeue_frame(TFCAN_Frame *frame);

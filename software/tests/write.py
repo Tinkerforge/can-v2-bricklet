@@ -23,6 +23,6 @@ if __name__ == "__main__":
                 print(i, 'failed')
 
     can.write_frame(can.FRAME_TYPE_STANDARD_DATA, 0x321, [1, 2, 3, 4, 5, 6, 7, 8])
-    can.write_frame(can.FRAME_TYPE_EXTENDED_REMOTE, (((1 << 11) - 1) << 18) + 1, [1, 2, 3, 4, 5])
+    #can.write_frame(can.FRAME_TYPE_EXTENDED_REMOTE, (((1 << 11) - 1) << 18) + 1, [1, 2, 3, 4, 5])
 
     ipcon.disconnect()
