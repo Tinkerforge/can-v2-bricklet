@@ -62,31 +62,31 @@ typedef struct {
 	int32_t mo_frame_counter[TFCAN_MO_SIZE];
 	uint16_t mo_age[TFCAN_MO_SIZE];
 
-	CAN_MO_TypeDef **tx_mo;
-	uint8_t tx_mo_size; // [1..TFCAN_MO_SIZE-1]
-	uint8_t tx_mo_next_index;
-	uint32_t tx_mo_timestamp[TFCAN_MO_SIZE];
+	uint8_t tx_buffer_size; // [0..TFCAN_BUFFER_SIZE]
+	CAN_MO_TypeDef **tx_buffer_mo;
+	uint8_t tx_buffer_mo_next_index;
+	uint32_t tx_buffer_mo_timestamp[TFCAN_MO_SIZE];
 
-	bool tx_mo_timeout_pending;
-	uint8_t tx_mo_timeout_index;
-	uint32_t tx_mo_timeout_timestamp;
+	bool tx_timeout_pending;
+	uint8_t tx_timeout_mo_index;
+	uint32_t tx_timeout_settle_timestamp;
 
-	CAN_MO_TypeDef **rx_mo[TFCAN_MO_SIZE];
-	int32_t *rx_mo_frame_counter[TFCAN_MO_SIZE];
-	uint16_t *rx_mo_age[TFCAN_MO_SIZE];
-	uint8_t rx_mo_size[TFCAN_MO_SIZE]; // [1..TFCAN_MO_SIZE-1]
-	uint8_t rx_mo_next_index[TFCAN_MO_SIZE];
-	TFCAN_BufferType rx_mo_type[TFCAN_MO_SIZE];
+	uint8_t rx_buffer_size[TFCAN_RX_BUFFER_SIZE]; // [0..TFCAN_RX_BUFFER_SIZE]
+	TFCAN_BufferType rx_buffer_type[TFCAN_RX_BUFFER_SIZE];
+	CAN_MO_TypeDef **rx_buffer_mo[TFCAN_RX_BUFFER_SIZE];
+	uint8_t rx_buffer_mo_next_index[TFCAN_RX_BUFFER_SIZE];
+	int32_t *rx_buffer_mo_frame_counter[TFCAN_RX_BUFFER_SIZE];
+	uint16_t *rx_buffer_mo_age[TFCAN_RX_BUFFER_SIZE];
 
 	TFCAN_Frame backlog[TFCAN_BACKLOG_SIZE];
 
+	uint16_t tx_backlog_size; // [0..TFCAN_BACKLOG_SIZE]
 	TFCAN_Frame *tx_backlog;
-	uint16_t tx_backlog_size; // [1..TFCAN_BACKLOG_SIZE-1]
 	uint16_t tx_backlog_start;
 	uint16_t tx_backlog_end;
 
+	uint16_t rx_backlog_size; // [0..TFCAN_BACKLOG_SIZE]
 	TFCAN_Frame *rx_backlog;
-	uint16_t rx_backlog_size; // [1..TFCAN_BACKLOG_SIZE-1]
 	uint16_t rx_backlog_start;
 	uint16_t rx_backlog_end;
 
