@@ -55,8 +55,12 @@ typedef struct {
 	int32_t write_buffer_timeout; // < 0 (single-shot), = 0 (infinite), > 0 (milliseconds)
 
 	CAN_NODE_TypeDef *node[TFCAN_NODE_SIZE];
+	CAN_NODE_TypeDef *tx_node;
+	CAN_NODE_TypeDef *rx_node;
 
 	CAN_MO_TypeDef *mo[TFCAN_MO_SIZE];
+	int32_t mo_frame_counter[TFCAN_MO_SIZE];
+	uint16_t mo_age[TFCAN_MO_SIZE];
 
 	CAN_MO_TypeDef **tx_mo;
 	uint8_t tx_mo_size; // [1..TFCAN_MO_SIZE-1]
@@ -68,6 +72,8 @@ typedef struct {
 	uint32_t tx_mo_timeout_timestamp;
 
 	CAN_MO_TypeDef **rx_mo[TFCAN_MO_SIZE];
+	int32_t *rx_mo_frame_counter[TFCAN_MO_SIZE];
+	uint16_t *rx_mo_age[TFCAN_MO_SIZE];
 	uint8_t rx_mo_size[TFCAN_MO_SIZE]; // [1..TFCAN_MO_SIZE-1]
 	uint8_t rx_mo_next_index[TFCAN_MO_SIZE];
 	TFCAN_BufferType rx_mo_type[TFCAN_MO_SIZE];

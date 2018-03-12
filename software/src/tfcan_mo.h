@@ -115,6 +115,8 @@ void tfcan_mo_init_rx_fifo_slave(CAN_MO_TypeDef *const mo, const uint8_t base);
 uint32_t tfcan_mo_get_status(const CAN_MO_TypeDef *const mo);
 void tfcan_mo_change_status(CAN_MO_TypeDef *const mo, const uint32_t mask);
 
+uint16_t tfcan_mo_get_frame_counter(CAN_MO_TypeDef *const mo);
+
 void tfcan_mo_set_irq_pointer(CAN_MO_TypeDef *const mo,
                               const TFCAN_MOIRQPointer irq_pointer,
                               const uint32_t srq_index);

@@ -70,7 +70,7 @@ void tfcan_mo_init_tx(CAN_MO_TypeDef *const mo) {
 void tfcan_mo_init_tx_fifo_base(CAN_MO_TypeDef *const mo, const uint8_t base_and_bottom,
                                 const uint8_t top) {
 	mo->MOFCR = (mo->MOFCR & ~(uint32_t)CAN_MO_MOFCR_MMC_Msk) |
-	            (((uint32_t)0x2U << CAN_MO_MOFCR_MMC_Pos) & (uint32_t)CAN_MO_MOFCR_MMC_Msk);
+	            (((uint32_t)0x2u << CAN_MO_MOFCR_MMC_Pos) & (uint32_t)CAN_MO_MOFCR_MMC_Msk);
 
 	mo->MOFGPR = (mo->MOFGPR & ~(uint32_t)(CAN_MO_MOFGPR_BOT_Msk |
 	                                       CAN_MO_MOFGPR_TOP_Msk |
@@ -85,7 +85,7 @@ void tfcan_mo_init_tx_fifo_base(CAN_MO_TypeDef *const mo, const uint8_t base_and
 
 void tfcan_mo_init_tx_fifo_slave(CAN_MO_TypeDef *const mo, const uint8_t base) {
 	mo->MOFCR = (mo->MOFCR & ~(uint32_t)CAN_MO_MOFCR_MMC_Msk) |
-	            (((uint32_t)0x3U << CAN_MO_MOFCR_MMC_Pos) & (uint32_t)CAN_MO_MOFCR_MMC_Msk);
+	            (((uint32_t)0x3u << CAN_MO_MOFCR_MMC_Pos) & (uint32_t)CAN_MO_MOFCR_MMC_Msk);
 
 	mo->MOFGPR = (mo->MOFGPR & ~(uint32_t)(CAN_MO_MOFGPR_BOT_Msk |
 	                                       CAN_MO_MOFGPR_TOP_Msk |
@@ -144,7 +144,7 @@ void tfcan_mo_init_rx(CAN_MO_TypeDef *const mo, const TFCAN_BufferType type) {
 void tfcan_mo_init_rx_fifo_base(CAN_MO_TypeDef *const mo, const uint8_t base_and_bottom,
                                 const uint8_t top) {
 	mo->MOFCR = (mo->MOFCR & ~(uint32_t)CAN_MO_MOFCR_MMC_Msk) |
-	            (((uint32_t)0x1U << CAN_MO_MOFCR_MMC_Pos) & (uint32_t)CAN_MO_MOFCR_MMC_Msk);
+	            (((uint32_t)0x1u << CAN_MO_MOFCR_MMC_Pos) & (uint32_t)CAN_MO_MOFCR_MMC_Msk);
 
 	mo->MOFGPR = (mo->MOFGPR & ~(uint32_t)(CAN_MO_MOFGPR_BOT_Msk |
 	                                       CAN_MO_MOFGPR_TOP_Msk |
@@ -171,6 +171,10 @@ uint32_t tfcan_mo_get_status(const CAN_MO_TypeDef *const mo) {
 
 void tfcan_mo_change_status(CAN_MO_TypeDef *const mo, const uint32_t mask) {
 	mo->MOCTR = mask;
+}
+
+uint16_t tfcan_mo_get_frame_counter(CAN_MO_TypeDef *const mo) {
+	return (mo->MOIPR & (uint32_t)CAN_MO_MOIPR_CFCVAL_Msk) >> CAN_MO_MOIPR_CFCVAL_Pos;
 }
 
 void tfcan_mo_set_irq_pointer(CAN_MO_TypeDef *const mo,
