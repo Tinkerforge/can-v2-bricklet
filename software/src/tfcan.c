@@ -41,11 +41,11 @@ void tfcan_init(void) {
 
 	memset(&tfcan, 0, sizeof(TFCAN));
 
-	tfcan.baudrate = 125000;
+	tfcan.reconfigure_transceiver = true;
+	tfcan.baud_rate_new = 125000;
 	tfcan.sample_point = 8000;
 	tfcan.sync_jump_width = 1;
-	tfcan.transceiver_mode = TFCAN_TRANSCEIVER_MODE_NORMAL;
-	tfcan.write_buffer_timeout = 3000;
+	tfcan.transceiver_mode_new = TFCAN_TRANSCEIVER_MODE_NORMAL;
 
 	tfcan.node[0] = CAN_NODE0;
 	tfcan.node[1] = CAN_NODE1;
@@ -77,10 +77,7 @@ void tfcan_init(void) {
 
 	XMC_GPIO_Init(TFCAN_TX_PIN, &tx_pin_config);
 
-	// configure transceiver
-	tfcan_reconfigure_transceiver();
-
-	// leave config mdoe
+	// leave config mode
 	tfcan_set_config_mode(false);
 
 	// configure TX interrupt
@@ -88,6 +85,7 @@ void tfcan_init(void) {
 	//NVIC_SetPriority(TFCAN_TX_IRQ_INDEX, 0);
 	//XMC_SCU_SetInterruptControl(TFCAN_TX_IRQ_INDEX, XMC_SCU_IRQCTRL_CAN0_SR0_IRQ0);
 
+	tfcan_reconfigure_transceiver();
 	tfcan_reconfigure_queues();
 
 	// configure extra LEDs
@@ -136,7 +134,8 @@ void tfcan_tick(void) {
 		tfcan.last_debug = system_timer_get_ms();
 	}*/
 
-	tfcan_check_tx_timeout();
+	tfcan_reconfigure_transceiver();
+	tfcan_check_tx_buffer_timeout();
 
 	// write at most TX FIFO size frames
 	for (uint8_t i = 0; i < tfcan.tx_buffer_size; ++i) {
@@ -293,43 +292,48 @@ void tfcan_set_config_mode(const bool enable) {
 	}
 }
 
-// requires config mode
 void tfcan_reconfigure_transceiver(void) {
-	uint32_t best_div;
-	uint32_t best_brp;
-	uint32_t best_time_quanta = 0;
-	uint32_t best_baudrate_error = tfcan.baudrate;
+	if (!tfcan.reconfigure_transceiver) {
+		return;
+	}
 
-	// find best DIV8/BRP combination based on CAN frequency and baudrate
+	tfcan_set_config_mode(true);
+
+	tfcan.reconfigure_transceiver = false;
+	tfcan.baud_rate = tfcan.baud_rate_new;
+	tfcan.transceiver_mode = tfcan.transceiver_mode_new;
+
+	uint32_t best_div = 1;
+	uint32_t best_brp = 1;
+	uint32_t best_time_quanta = 8;
+	uint32_t best_baud_rate_error = tfcan.baud_rate;
+
+	// find best DIV8/BRP combination based on CAN frequency and baud rate
 	for (int32_t div = 8; div > 0; div -= 7) {
 		for (uint32_t brp = 1; brp <= 64; ++brp) {
 			const uint32_t frequency = (TFCAN_FREQUENCY * 10) / (brp * div); // in 0.1 Hz
-			const uint32_t time_quanta = ((frequency / tfcan.baudrate) + 5) / 10;
+			const uint32_t time_quanta = ((frequency / tfcan.baud_rate) + 5) / 10;
 
 			if (time_quanta < 8 || time_quanta > 20) {
 				continue;
 			}
 
-			const uint32_t baudrate = frequency / (time_quanta * 10);
-			uint32_t baudrate_error;
+			const uint32_t baud_rate = frequency / (time_quanta * 10);
+			uint32_t baud_rate_error;
 
-			if (baudrate >= tfcan.baudrate) {
-				baudrate_error = baudrate - tfcan.baudrate;
+			if (baud_rate >= tfcan.baud_rate) {
+				baud_rate_error = baud_rate - tfcan.baud_rate;
 			} else {
-				baudrate_error = tfcan.baudrate - baudrate;
+				baud_rate_error = tfcan.baud_rate - baud_rate;
 			}
 
-			if (baudrate_error < best_baudrate_error) {
+			if (baud_rate_error < best_baud_rate_error) {
 				best_div = div;
 				best_brp = brp;
 				best_time_quanta = time_quanta;
-				best_baudrate_error = baudrate_error;
+				best_baud_rate_error = baud_rate_error;
 			}
 		}
-	}
-
-	if (best_time_quanta == 0) {
-		return; // this is just a safe-guard and will not happen for [10..10000] kbps
 	}
 
 	// find best TSEG1 based on sample-point configuration
@@ -356,14 +360,10 @@ void tfcan_reconfigure_transceiver(void) {
 		}
 	}
 
-	if (best_tseg1 < 3) {
-		return; // this is just a safe-guard and will not happen for [10..10000] kbps
-	}
-
 	const uint32_t best_tseg2 = best_time_quanta - best_tseg1 - 1;
 
-	logi("baudrate %u, div %u, brp %u, tseg1 %u, tseg2 %u\n\r",
-	     tfcan.baudrate, best_div, best_brp, best_tseg1, best_tseg2);
+	logi("baud rate %u, div %u, brp %u, tseg1 %u, tseg2 %u\n\r",
+	     tfcan.baud_rate, best_div, best_brp, best_tseg1, best_tseg2);
 
 	const uint32_t nbtr = (((uint32_t)(best_brp - 1)              << CAN_NODE_NBTR_BRP_Pos)   & (uint32_t)CAN_NODE_NBTR_BRP_Msk) |
 	                      (((uint32_t)(tfcan.sync_jump_width - 1) << CAN_NODE_NBTR_SJW_Pos)   & (uint32_t)CAN_NODE_NBTR_SJW_Msk) |
@@ -396,9 +396,10 @@ void tfcan_reconfigure_transceiver(void) {
 	} else {
 		tfcan.rx_node = tfcan.node[0];
 	}
+
+	tfcan_set_config_mode(false);
 }
 
-// does not require config mode
 void tfcan_reconfigure_queues(void) {
 	for (uint8_t i = 0; i < TFCAN_RX_BUFFER_SIZE; ++i) {
 		tfcan.rx_buffer_size[i] = 0;
@@ -409,10 +410,10 @@ void tfcan_reconfigure_queues(void) {
 	// reset queues
 	tfcan.tx_buffer_size = TFCAN_MO_SIZE / 2;
 	tfcan.tx_buffer_mo_next_index = 0;
-
-	tfcan.tx_timeout_pending = false;
-	tfcan.tx_timeout_mo_index = 0;
-	tfcan.tx_timeout_settle_timestamp = 0;
+	tfcan.tx_buffer_timeout = 3000;
+	tfcan.tx_buffer_timeout_pending = false;
+	tfcan.tx_buffer_timeout_mo_index = 0;
+	tfcan.tx_buffer_timeout_settle_timestamp = 0;
 
 	tfcan.rx_buffer_size[0] = TFCAN_MO_SIZE / 4;
 	tfcan.rx_buffer_type[0] = TFCAN_BUFFER_TYPE_DATA;
@@ -524,19 +525,19 @@ void tfcan_reconfigure_queues(void) {
 	}
 }
 
-void tfcan_check_tx_timeout(void) {
-	if (tfcan.write_buffer_timeout <= 0 || tfcan.tx_buffer_size == 0) {
+void tfcan_check_tx_buffer_timeout(void) {
+	if (tfcan.tx_buffer_timeout <= 0 || tfcan.tx_buffer_size == 0) {
 		return;
 	}
 
-	if (!tfcan.tx_timeout_pending) {
+	if (!tfcan.tx_buffer_timeout_pending) {
 		// reading MOFGPR.CUR has a race-condition, because it can be changed by
 		// hardware at any time, but the actual value will always be between
 		// the last read value and the tx_buffer_mo_next_index value, because
 		// MOFGPR.CUR can only increase, but not past tx_buffer_mo_next_index
-		tfcan.tx_timeout_mo_index = tfcan_mo_get_tx_fifo_current(tfcan.tx_buffer_mo[0]);
+		tfcan.tx_buffer_timeout_mo_index = tfcan_mo_get_tx_fifo_current(tfcan.tx_buffer_mo[0]);
 
-		CAN_MO_TypeDef *mo = tfcan.tx_buffer_mo[tfcan.tx_timeout_mo_index];
+		CAN_MO_TypeDef *mo = tfcan.tx_buffer_mo[tfcan.tx_buffer_timeout_mo_index];
 		uint32_t status = tfcan_mo_get_status(mo);
 
 		if ((status & TFCAN_MO_STATUS_TX_REQUEST) == 0) {
@@ -546,24 +547,24 @@ void tfcan_check_tx_timeout(void) {
 			// transmitted
 			const uint8_t index = tfcan_mo_get_tx_fifo_current(tfcan.tx_buffer_mo[0]);
 
-			if (tfcan.tx_timeout_mo_index != index) {
-				logi("tx %d timeout? current changed to %u\n\r", tfcan.tx_timeout_mo_index, index);
+			if (tfcan.tx_buffer_timeout_mo_index != index) {
+				logi("tx %d timeout? current changed to %u\n\r", tfcan.tx_buffer_timeout_mo_index, index);
 			}
 
 			return;
 		}
 
-		if (!system_timer_is_time_elapsed_ms(tfcan.tx_buffer_mo_timestamp[tfcan.tx_timeout_mo_index],
-		                                     tfcan.write_buffer_timeout)) {
+		if (!system_timer_is_time_elapsed_ms(tfcan.tx_buffer_mo_timestamp[tfcan.tx_buffer_timeout_mo_index],
+		                                     tfcan.tx_buffer_timeout)) {
 			// current MO is not timed-out yet, therefore MOs further back
 			// in the FIFO cannot be timed-out yet either
 			return;
 		}
 
-		tfcan.tx_timeout_pending = true;
-		tfcan.tx_timeout_settle_timestamp = system_timer_get_ms();
+		tfcan.tx_buffer_timeout_pending = true;
+		tfcan.tx_buffer_timeout_settle_timestamp = system_timer_get_ms();
 
-		logi("tx %d timeout!\n\r", tfcan.tx_timeout_mo_index);
+		logi("tx %d timeout!\n\r", tfcan.tx_buffer_timeout_mo_index);
 
 		// disable transmission to ensure consitent register content while
 		// modifying MOFGPR.CUR and MOSTAT.TXEN1
@@ -587,26 +588,26 @@ void tfcan_check_tx_timeout(void) {
 		//   this by waiting 2ms to let this settle
 		tfcan_mo_change_status(mo, TFCAN_MO_RESET_STATUS_TX_REQUEST |
 		                           TFCAN_MO_RESET_STATUS_RX_TX_SELECTED);
-	} else if (system_timer_is_time_elapsed_ms(tfcan.tx_timeout_settle_timestamp,
-	                                           TFCAN_TX_TIMEOUT_SETTLE_DURATION)) {
+	} else if (system_timer_is_time_elapsed_ms(tfcan.tx_buffer_timeout_settle_timestamp,
+	                                           TFCAN_TX_BUFFER_TIMEOUT_SETTLE_DURATION)) {
 		const uint8_t index = tfcan_mo_get_tx_fifo_current(tfcan.tx_buffer_mo[0]);
 
 		// check if MOFGPR.CUR changed during the settle period, if not advance
 		// TX FIFO read pointer, if it did then no actual timout occured
-		if (tfcan.tx_timeout_mo_index == index) {
-			CAN_MO_TypeDef *mo = tfcan.tx_buffer_mo[tfcan.tx_timeout_mo_index];
-			const uint8_t index_next = (tfcan.tx_timeout_mo_index + 1) % tfcan.tx_buffer_size;
+		if (tfcan.tx_buffer_timeout_mo_index == index) {
+			CAN_MO_TypeDef *mo = tfcan.tx_buffer_mo[tfcan.tx_buffer_timeout_mo_index];
+			const uint8_t index_next = (tfcan.tx_buffer_timeout_mo_index + 1) % tfcan.tx_buffer_size;
 			CAN_MO_TypeDef *mo_next = tfcan.tx_buffer_mo[index_next];
 
 			tfcan_mo_change_status(mo, TFCAN_MO_RESET_STATUS_TX_ENABLE1);
 			tfcan_mo_set_tx_fifo_current(tfcan.tx_buffer_mo[0], index_next);
 			tfcan_mo_change_status(mo_next, TFCAN_MO_SET_STATUS_TX_ENABLE1);
-		} else if (tfcan.tx_timeout_mo_index != index) {
-			logi("tx %d timeout! current changed to %u\n\r", tfcan.tx_timeout_mo_index, index);
+		} else if (tfcan.tx_buffer_timeout_mo_index != index) {
+			logi("tx %d timeout! current changed to %u\n\r", tfcan.tx_buffer_timeout_mo_index, index);
 		}
 
 		// re-enable transmission
-		tfcan.tx_timeout_pending = false;
+		tfcan.tx_buffer_timeout_pending = false;
 		tfcan.tx_node->NCR &= ~(uint32_t)CAN_NODE_NCR_TXDIS_Msk;
 	}
 }

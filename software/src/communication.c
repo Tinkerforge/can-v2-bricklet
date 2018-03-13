@@ -27,6 +27,8 @@
 
 #include "tfcan.h"
 
+extern TFCAN tfcan;
+
 static bool frame_read_callback_enabled = false;
 
 BootloaderHandleMessageResponse handle_message(const void *message, void *response) {
@@ -119,12 +121,28 @@ BootloaderHandleMessageResponse get_frame_read_callback_configuration(const GetF
 }
 
 BootloaderHandleMessageResponse set_transceiver_configuration(const SetTransceiverConfiguration *data) {
+	if (data->baud_rate < 10000 || data->baud_rate > 1000000 ||
+	    data->transceiver_mode > CAN_V2_TRANSCEIVER_MODE_READ_ONLY) {
+		return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+	}
+
+	tfcan.baud_rate_new           = data->baud_rate;
+	tfcan.transceiver_mode_new    = data->transceiver_mode;
+	tfcan.reconfigure_transceiver = true;
 
 	return HANDLE_MESSAGE_RESPONSE_EMPTY;
 }
 
 BootloaderHandleMessageResponse get_transceiver_configuration(const GetTransceiverConfiguration *data, GetTransceiverConfiguration_Response *response) {
 	response->header.length = sizeof(GetTransceiverConfiguration_Response);
+
+	if (tfcan.reconfigure_transceiver) {
+		response->baud_rate        = tfcan.baud_rate_new;
+		response->transceiver_mode = tfcan.transceiver_mode_new;
+	} else {
+		response->baud_rate        = tfcan.baud_rate;
+		response->transceiver_mode = tfcan.transceiver_mode;
+	}
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }

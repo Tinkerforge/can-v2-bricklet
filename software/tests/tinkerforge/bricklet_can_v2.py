@@ -19,7 +19,7 @@ except ValueError:
     from ip_connection import Device, IPConnection, Error, create_char, create_char_list, create_string, create_chunk_data
 
 ReadFrameLowLevel = namedtuple('ReadFrameLowLevel', ['success', 'frame_type', 'identifier', 'data_length', 'data_data'])
-GetTransceiverConfiguration = namedtuple('TransceiverConfiguration', ['baud_rate', 'transceiver_mode', 'write_timeout'])
+GetTransceiverConfiguration = namedtuple('TransceiverConfiguration', ['baud_rate', 'transceiver_mode'])
 GetWriteQueueConfiguration = namedtuple('WriteQueueConfiguration', ['buffer_size', 'backlog_size'])
 GetReadQueueBufferConfiguration = namedtuple('ReadQueueBufferConfiguration', ['buffer_type', 'buffer_size', 'filter_mode', 'filter_mask', 'filter_match'])
 GetErrorLog = namedtuple('ErrorLog', ['write_error_level', 'read_error_level', 'transceiver_disabled', 'write_timeout_count', 'read_register_overflow_count', 'read_buffer_overflow_count'])
@@ -212,8 +212,10 @@ class BrickletCANV2(Device):
         """
         return self.ipcon.send_request(self, BrickletCANV2.FUNCTION_GET_FRAME_READ_CALLBACK_CONFIGURATION, (), '', '!')
 
-    def set_transceiver_configuration(self, baud_rate, transceiver_mode, write_timeout):
+    def set_transceiver_configuration(self, baud_rate, transceiver_mode):
         """
+        FIXME
+
         Sets the transceiver configuration for the CAN bus communication.
 
         The baud rate can be configured in bit/s between 10 and 1000 kbit/s.
@@ -228,7 +230,7 @@ class BrickletCANV2(Device):
           detection nor acknowledgement. Only the receiving part of the transceiver
           is connected to the CAN bus.
 
-        The write timeout has three different modes that define how a failed frame
+        The write buffer timeout has three different modes that define how a failed frame
         transmission should be handled:
 
         * Single-Shot (< 0): Only one transmission attempt will be made. If the
@@ -243,17 +245,16 @@ class BrickletCANV2(Device):
         """
         baud_rate = int(baud_rate)
         transceiver_mode = int(transceiver_mode)
-        write_timeout = int(write_timeout)
 
-        self.ipcon.send_request(self, BrickletCANV2.FUNCTION_SET_TRANSCEIVER_CONFIGURATION, (baud_rate, transceiver_mode, write_timeout), 'I B i', '')
+        self.ipcon.send_request(self, BrickletCANV2.FUNCTION_SET_TRANSCEIVER_CONFIGURATION, (baud_rate, transceiver_mode), 'I B', '')
 
     def get_transceiver_configuration(self):
         """
         Returns the configuration as set by :func:`Set Transceiver Configuration`.
         """
-        return GetTransceiverConfiguration(*self.ipcon.send_request(self, BrickletCANV2.FUNCTION_GET_TRANSCEIVER_CONFIGURATION, (), '', 'B B i'))
+        return GetTransceiverConfiguration(*self.ipcon.send_request(self, BrickletCANV2.FUNCTION_GET_TRANSCEIVER_CONFIGURATION, (), '', 'I B'))
 
-    def set_write_queue_configuration(self, buffer_size, backlog_size):
+    def set_write_queue_configuration(self, buffer_size, buffer_timeout, backlog_size):
         """
         FIXME
 
@@ -285,9 +286,10 @@ class BrickletCANV2(Device):
         The default is: 125 kbit/s, normal transceiver mode and infinite write timeout.
         """
         buffer_size = int(buffer_size)
+        buffer_timeout = int(buffer_timeout)
         backlog_size = int(backlog_size)
 
-        self.ipcon.send_request(self, BrickletCANV2.FUNCTION_SET_WRITE_QUEUE_CONFIGURATION, (buffer_size, backlog_size), 'B H', '')
+        self.ipcon.send_request(self, BrickletCANV2.FUNCTION_SET_WRITE_QUEUE_CONFIGURATION, (buffer_size, buffer_timeout, backlog_size), 'B i H', '')
 
     def get_write_queue_configuration(self):
         """

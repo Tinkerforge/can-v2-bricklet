@@ -130,7 +130,6 @@ typedef struct {
 	TFPMessageHeader header;
 	uint32_t baud_rate;
 	uint8_t transceiver_mode;
-	int32_t write_timeout;
 } __attribute__((__packed__)) SetTransceiverConfiguration;
 
 typedef struct {
@@ -139,14 +138,14 @@ typedef struct {
 
 typedef struct {
 	TFPMessageHeader header;
-	uint8_t baud_rate;
+	uint32_t baud_rate;
 	uint8_t transceiver_mode;
-	int32_t write_timeout;
 } __attribute__((__packed__)) GetTransceiverConfiguration_Response;
 
 typedef struct {
 	TFPMessageHeader header;
 	uint8_t buffer_size;
+	int32_t buffer_timeout;
 	uint16_t backlog_size;
 } __attribute__((__packed__)) SetWriteQueueConfiguration;
 
@@ -157,6 +156,7 @@ typedef struct {
 typedef struct {
 	TFPMessageHeader header;
 	uint8_t buffer_size;
+	int32_t buffer_timeout;
 	uint16_t backlog_size;
 } __attribute__((__packed__)) GetWriteQueueConfiguration_Response;
 

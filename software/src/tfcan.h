@@ -48,11 +48,13 @@ typedef struct {
 } __attribute__((__packed__)) TFCAN_Frame; // 13 bytes
 
 typedef struct {
-	uint32_t baudrate; // [10000..10000000] bps
+	bool reconfigure_transceiver;
+	uint32_t baud_rate; // [10000..10000000] bps
+	uint32_t baud_rate_new;
 	uint16_t sample_point; // [0..10000] 0.01 %
 	uint8_t sync_jump_width; // [1..4] // FIXME: bit-timing calculation assumes this to be 1
 	TFCAN_TransceiverMode transceiver_mode;
-	int32_t write_buffer_timeout; // < 0 (single-shot), = 0 (infinite), > 0 (milliseconds)
+	TFCAN_TransceiverMode transceiver_mode_new;
 
 	CAN_NODE_TypeDef *node[TFCAN_NODE_SIZE];
 	CAN_NODE_TypeDef *tx_node;
@@ -66,10 +68,10 @@ typedef struct {
 	CAN_MO_TypeDef **tx_buffer_mo;
 	uint8_t tx_buffer_mo_next_index;
 	uint32_t tx_buffer_mo_timestamp[TFCAN_MO_SIZE];
-
-	bool tx_timeout_pending;
-	uint8_t tx_timeout_mo_index;
-	uint32_t tx_timeout_settle_timestamp;
+	int32_t tx_buffer_timeout; // < 0 (single-shot), = 0 (infinite), > 0 (milliseconds)
+	bool tx_buffer_timeout_pending;
+	uint8_t tx_buffer_timeout_mo_index;
+	uint32_t tx_buffer_timeout_settle_timestamp;
 
 	uint8_t rx_buffer_size[TFCAN_RX_BUFFER_SIZE]; // [0..TFCAN_RX_BUFFER_SIZE]
 	TFCAN_BufferType rx_buffer_type[TFCAN_RX_BUFFER_SIZE];
@@ -101,7 +103,7 @@ void tfcan_set_config_mode(const bool enable);
 void tfcan_reconfigure_transceiver(void);
 void tfcan_reconfigure_queues(void);
 
-void tfcan_check_tx_timeout(void);
+void tfcan_check_tx_buffer_timeout(void);
 
 bool tfcan_enqueue_frame(TFCAN_Frame *frame);
 bool tfcan_dequeue_frame(TFCAN_Frame *frame);
