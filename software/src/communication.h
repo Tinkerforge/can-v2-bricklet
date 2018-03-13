@@ -39,24 +39,17 @@ void communication_init(void);
 #define CAN_V2_FRAME_TYPE_EXTENDED_DATA 2
 #define CAN_V2_FRAME_TYPE_EXTENDED_REMOTE 3
 
-#define CAN_V2_BAUD_RATE_10KBPS 0
-#define CAN_V2_BAUD_RATE_20KBPS 1
-#define CAN_V2_BAUD_RATE_50KBPS 2
-#define CAN_V2_BAUD_RATE_125KBPS 3
-#define CAN_V2_BAUD_RATE_250KBPS 4
-#define CAN_V2_BAUD_RATE_500KBPS 5
-#define CAN_V2_BAUD_RATE_800KBPS 6
-#define CAN_V2_BAUD_RATE_1000KBPS 7
-
 #define CAN_V2_TRANSCEIVER_MODE_NORMAL 0
 #define CAN_V2_TRANSCEIVER_MODE_LOOPBACK 1
 #define CAN_V2_TRANSCEIVER_MODE_READ_ONLY 2
 
-#define CAN_V2_FILTER_MODE_DISABLED 0
-#define CAN_V2_FILTER_MODE_ACCEPT_ALL 1
-#define CAN_V2_FILTER_MODE_MATCH_STANDARD 2
-#define CAN_V2_FILTER_MODE_MATCH_STANDARD_AND_DATA 3
-#define CAN_V2_FILTER_MODE_MATCH_EXTENDED 4
+#define CAN_V2_BUFFER_TYPE_DATA 0
+#define CAN_V2_BUFFER_TYPE_REMOTE 1
+
+#define CAN_V2_FILTER_MODE_ACCEPT_ALL 0
+#define CAN_V2_FILTER_MODE_MATCH_STANDARD_AND_EXTENDED 1
+#define CAN_V2_FILTER_MODE_MATCH_STANDARD_ONLY 2
+#define CAN_V2_FILTER_MODE_MATCH_EXTENDED_ONLY 3
 
 #define CAN_V2_BOOTLOADER_MODE_BOOTLOADER 0
 #define CAN_V2_BOOTLOADER_MODE_FIRMWARE 1
@@ -79,16 +72,19 @@ void communication_init(void);
 // Function and callback IDs and structs
 #define FID_WRITE_FRAME_LOW_LEVEL 1
 #define FID_READ_FRAME_LOW_LEVEL 2
-#define FID_ENABLE_FRAME_READ_CALLBACK 3
-#define FID_DISABLE_FRAME_READ_CALLBACK 4
-#define FID_IS_FRAME_READ_CALLBACK_ENABLED 5
-#define FID_SET_CONFIGURATION 6
-#define FID_GET_CONFIGURATION 7
-#define FID_SET_READ_FILTER 8
-#define FID_GET_READ_FILTER 9
-#define FID_GET_ERROR_LOG 10
+#define FID_SET_FRAME_READ_CALLBACK_CONFIGURATION 3
+#define FID_GET_FRAME_READ_CALLBACK_CONFIGURATION 4
+#define FID_SET_TRANSCEIVER_CONFIGURATION 5
+#define FID_GET_TRANSCEIVER_CONFIGURATION 6
+#define FID_SET_WRITE_QUEUE_CONFIGURATION 7
+#define FID_GET_WRITE_QUEUE_CONFIGURATION 8
+#define FID_SET_READ_QUEUE_BUFFER_CONFIGURATION 9
+#define FID_GET_READ_QUEUE_BUFFER_CONFIGURATION 10
+#define FID_SET_READ_QUEUE_BACKLOG_CONFIGURATION 11
+#define FID_GET_READ_QUEUE_BACKLOG_CONFIGURATION 12
+#define FID_GET_ERROR_LOG 13
 
-#define FID_CALLBACK_FRAME_READ 11
+#define FID_CALLBACK_FRAME_READ_LOW_LEVEL 14
 
 typedef struct {
 	TFPMessageHeader header;
@@ -118,58 +114,89 @@ typedef struct {
 
 typedef struct {
 	TFPMessageHeader header;
-} __attribute__((__packed__)) EnableFrameReadCallback;
+	bool enabled;
+} __attribute__((__packed__)) SetFrameReadCallbackConfiguration;
 
 typedef struct {
 	TFPMessageHeader header;
-} __attribute__((__packed__)) DisableFrameReadCallback;
-
-typedef struct {
-	TFPMessageHeader header;
-} __attribute__((__packed__)) IsFrameReadCallbackEnabled;
+} __attribute__((__packed__)) GetFrameReadCallbackConfiguration;
 
 typedef struct {
 	TFPMessageHeader header;
 	bool enabled;
-} __attribute__((__packed__)) IsFrameReadCallbackEnabled_Response;
+} __attribute__((__packed__)) GetFrameReadCallbackConfiguration_Response;
+
+typedef struct {
+	TFPMessageHeader header;
+	uint32_t baud_rate;
+	uint8_t transceiver_mode;
+	int32_t write_timeout;
+} __attribute__((__packed__)) SetTransceiverConfiguration;
+
+typedef struct {
+	TFPMessageHeader header;
+} __attribute__((__packed__)) GetTransceiverConfiguration;
 
 typedef struct {
 	TFPMessageHeader header;
 	uint8_t baud_rate;
 	uint8_t transceiver_mode;
 	int32_t write_timeout;
-} __attribute__((__packed__)) SetConfiguration;
+} __attribute__((__packed__)) GetTransceiverConfiguration_Response;
 
 typedef struct {
 	TFPMessageHeader header;
-} __attribute__((__packed__)) GetConfiguration;
+	uint8_t buffer_size;
+	uint16_t backlog_size;
+} __attribute__((__packed__)) SetWriteQueueConfiguration;
 
 typedef struct {
 	TFPMessageHeader header;
-	uint8_t baud_rate;
-	uint8_t transceiver_mode;
-	int32_t write_timeout;
-} __attribute__((__packed__)) GetConfiguration_Response;
+} __attribute__((__packed__)) GetWriteQueueConfiguration;
 
 typedef struct {
 	TFPMessageHeader header;
-	uint8_t mode;
-	uint32_t mask;
-	uint32_t filter1;
-	uint32_t filter2;
-} __attribute__((__packed__)) SetReadFilter;
+	uint8_t buffer_size;
+	uint16_t backlog_size;
+} __attribute__((__packed__)) GetWriteQueueConfiguration_Response;
 
 typedef struct {
 	TFPMessageHeader header;
-} __attribute__((__packed__)) GetReadFilter;
+	uint8_t buffer_index;
+	uint8_t buffer_type;
+	uint8_t buffer_size;
+	uint8_t filter_mode;
+	uint32_t filter_mask;
+	uint32_t filter_match;
+} __attribute__((__packed__)) SetReadQueueBufferConfiguration;
 
 typedef struct {
 	TFPMessageHeader header;
-	uint8_t mode;
-	uint32_t mask;
-	uint32_t filter1;
-	uint32_t filter2;
-} __attribute__((__packed__)) GetReadFilter_Response;
+	uint8_t buffer_index;
+} __attribute__((__packed__)) GetReadQueueBufferConfiguration;
+
+typedef struct {
+	TFPMessageHeader header;
+	uint8_t buffer_type;
+	uint8_t buffer_size;
+	uint8_t filter_mode;
+	uint32_t filter_mask;
+	uint32_t filter_match;
+} __attribute__((__packed__)) GetReadQueueBufferConfiguration_Response;
+
+typedef struct {
+	TFPMessageHeader header;
+	uint16_t backlog_size;
+} __attribute__((__packed__)) SetReadQueueBacklogConfiguration;
+
+typedef struct {
+	TFPMessageHeader header;
+} __attribute__((__packed__)) GetReadQueueBacklogConfiguration;
+
+typedef struct {
+	TFPMessageHeader header;
+	uint16_t backlog_size;
+} __attribute__((__packed__)) GetReadQueueBacklogConfiguration_Response;
 
 typedef struct {
 	TFPMessageHeader header;
@@ -189,29 +216,33 @@ typedef struct {
 	TFPMessageHeader header;
 	uint8_t frame_type;
 	uint32_t identifier;
-	uint8_t data[8];
-	uint8_t length;
-} __attribute__((__packed__)) FrameRead_Callback;
+	uint8_t data_length;
+	uint8_t data_data[15];
+} __attribute__((__packed__)) FrameReadLowLevel_Callback;
 
 
 // Function prototypes
 BootloaderHandleMessageResponse write_frame_low_level(const WriteFrameLowLevel *data, WriteFrameLowLevel_Response *response);
 BootloaderHandleMessageResponse read_frame_low_level(const ReadFrameLowLevel *data, ReadFrameLowLevel_Response *response);
-BootloaderHandleMessageResponse enable_frame_read_callback(const EnableFrameReadCallback *data);
-BootloaderHandleMessageResponse disable_frame_read_callback(const DisableFrameReadCallback *data);
-BootloaderHandleMessageResponse is_frame_read_callback_enabled(const IsFrameReadCallbackEnabled *data, IsFrameReadCallbackEnabled_Response *response);
-BootloaderHandleMessageResponse set_configuration(const SetConfiguration *data);
-BootloaderHandleMessageResponse get_configuration(const GetConfiguration *data, GetConfiguration_Response *response);
-BootloaderHandleMessageResponse set_read_filter(const SetReadFilter *data);
-BootloaderHandleMessageResponse get_read_filter(const GetReadFilter *data, GetReadFilter_Response *response);
+BootloaderHandleMessageResponse set_frame_read_callback_configuration(const SetFrameReadCallbackConfiguration *data);
+BootloaderHandleMessageResponse get_frame_read_callback_configuration(const GetFrameReadCallbackConfiguration *data, GetFrameReadCallbackConfiguration_Response *response);
+BootloaderHandleMessageResponse set_transceiver_configuration(const SetTransceiverConfiguration *data);
+BootloaderHandleMessageResponse get_transceiver_configuration(const GetTransceiverConfiguration *data, GetTransceiverConfiguration_Response *response);
+BootloaderHandleMessageResponse set_write_queue_configuration(const SetWriteQueueConfiguration *data);
+BootloaderHandleMessageResponse get_write_queue_configuration(const GetWriteQueueConfiguration *data, GetWriteQueueConfiguration_Response *response);
+BootloaderHandleMessageResponse set_read_queue_buffer_configuration(const SetReadQueueBufferConfiguration *data);
+BootloaderHandleMessageResponse get_read_queue_buffer_configuration(const GetReadQueueBufferConfiguration *data, GetReadQueueBufferConfiguration_Response *response);
+BootloaderHandleMessageResponse set_read_queue_backlog_configuration(const SetReadQueueBacklogConfiguration *data);
+BootloaderHandleMessageResponse get_read_queue_backlog_configuration(const GetReadQueueBacklogConfiguration *data, GetReadQueueBacklogConfiguration_Response *response);
 BootloaderHandleMessageResponse get_error_log(const GetErrorLog *data, GetErrorLog_Response *response);
 
 // Callbacks
-bool handle_frame_read_callback(void);
+bool handle_frame_read_low_level_callback(void);
 
 #define COMMUNICATION_CALLBACK_TICK_WAIT_MS 1
 #define COMMUNICATION_CALLBACK_HANDLER_NUM 1
 #define COMMUNICATION_CALLBACK_LIST_INIT \
-	handle_frame_read_callback, \
+	handle_frame_read_low_level_callback, \
+
 
 #endif

@@ -31,13 +31,16 @@ BootloaderHandleMessageResponse handle_message(const void *message, void *respon
 	switch(tfp_get_fid_from_message(message)) {
 		case FID_WRITE_FRAME_LOW_LEVEL: return write_frame_low_level(message, response);
 		case FID_READ_FRAME_LOW_LEVEL: return read_frame_low_level(message, response);
-		case FID_ENABLE_FRAME_READ_CALLBACK: return enable_frame_read_callback(message);
-		case FID_DISABLE_FRAME_READ_CALLBACK: return disable_frame_read_callback(message);
-		case FID_IS_FRAME_READ_CALLBACK_ENABLED: return is_frame_read_callback_enabled(message, response);
-		case FID_SET_CONFIGURATION: return set_configuration(message);
-		case FID_GET_CONFIGURATION: return get_configuration(message, response);
-		case FID_SET_READ_FILTER: return set_read_filter(message);
-		case FID_GET_READ_FILTER: return get_read_filter(message, response);
+		case FID_SET_FRAME_READ_CALLBACK_CONFIGURATION: return set_frame_read_callback_configuration(message);
+		case FID_GET_FRAME_READ_CALLBACK_CONFIGURATION: return get_frame_read_callback_configuration(message, response);
+		case FID_SET_TRANSCEIVER_CONFIGURATION: return set_transceiver_configuration(message);
+		case FID_GET_TRANSCEIVER_CONFIGURATION: return get_transceiver_configuration(message, response);
+		case FID_SET_WRITE_QUEUE_CONFIGURATION: return set_write_queue_configuration(message);
+		case FID_GET_WRITE_QUEUE_CONFIGURATION: return get_write_queue_configuration(message, response);
+		case FID_SET_READ_QUEUE_BUFFER_CONFIGURATION: return set_read_queue_buffer_configuration(message);
+		case FID_GET_READ_QUEUE_BUFFER_CONFIGURATION: return get_read_queue_buffer_configuration(message, response);
+		case FID_SET_READ_QUEUE_BACKLOG_CONFIGURATION: return set_read_queue_backlog_configuration(message);
+		case FID_GET_READ_QUEUE_BACKLOG_CONFIGURATION: return get_read_queue_backlog_configuration(message, response);
 		case FID_GET_ERROR_LOG: return get_error_log(message, response);
 		default: return HANDLE_MESSAGE_RESPONSE_NOT_SUPPORTED;
 	}
@@ -91,40 +94,57 @@ BootloaderHandleMessageResponse read_frame_low_level(const ReadFrameLowLevel *da
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
 
-BootloaderHandleMessageResponse enable_frame_read_callback(const EnableFrameReadCallback *data) {
+BootloaderHandleMessageResponse set_frame_read_callback_configuration(const SetFrameReadCallbackConfiguration *data) {
 
 	return HANDLE_MESSAGE_RESPONSE_EMPTY;
 }
 
-BootloaderHandleMessageResponse disable_frame_read_callback(const DisableFrameReadCallback *data) {
-
-	return HANDLE_MESSAGE_RESPONSE_EMPTY;
-}
-
-BootloaderHandleMessageResponse is_frame_read_callback_enabled(const IsFrameReadCallbackEnabled *data, IsFrameReadCallbackEnabled_Response *response) {
-	response->header.length = sizeof(IsFrameReadCallbackEnabled_Response);
+BootloaderHandleMessageResponse get_frame_read_callback_configuration(const GetFrameReadCallbackConfiguration *data, GetFrameReadCallbackConfiguration_Response *response) {
+	response->header.length = sizeof(GetFrameReadCallbackConfiguration_Response);
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
 
-BootloaderHandleMessageResponse set_configuration(const SetConfiguration *data) {
+BootloaderHandleMessageResponse set_transceiver_configuration(const SetTransceiverConfiguration *data) {
 
 	return HANDLE_MESSAGE_RESPONSE_EMPTY;
 }
 
-BootloaderHandleMessageResponse get_configuration(const GetConfiguration *data, GetConfiguration_Response *response) {
-	response->header.length = sizeof(GetConfiguration_Response);
+BootloaderHandleMessageResponse get_transceiver_configuration(const GetTransceiverConfiguration *data, GetTransceiverConfiguration_Response *response) {
+	response->header.length = sizeof(GetTransceiverConfiguration_Response);
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
 
-BootloaderHandleMessageResponse set_read_filter(const SetReadFilter *data) {
+BootloaderHandleMessageResponse set_write_queue_configuration(const SetWriteQueueConfiguration *data) {
 
 	return HANDLE_MESSAGE_RESPONSE_EMPTY;
 }
 
-BootloaderHandleMessageResponse get_read_filter(const GetReadFilter *data, GetReadFilter_Response *response) {
-	response->header.length = sizeof(GetReadFilter_Response);
+BootloaderHandleMessageResponse get_write_queue_configuration(const GetWriteQueueConfiguration *data, GetWriteQueueConfiguration_Response *response) {
+	response->header.length = sizeof(GetWriteQueueConfiguration_Response);
+
+	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
+}
+
+BootloaderHandleMessageResponse set_read_queue_buffer_configuration(const SetReadQueueBufferConfiguration *data) {
+
+	return HANDLE_MESSAGE_RESPONSE_EMPTY;
+}
+
+BootloaderHandleMessageResponse get_read_queue_buffer_configuration(const GetReadQueueBufferConfiguration *data, GetReadQueueBufferConfiguration_Response *response) {
+	response->header.length = sizeof(GetReadQueueBufferConfiguration_Response);
+
+	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
+}
+
+BootloaderHandleMessageResponse set_read_queue_backlog_configuration(const SetReadQueueBacklogConfiguration *data) {
+
+	return HANDLE_MESSAGE_RESPONSE_EMPTY;
+}
+
+BootloaderHandleMessageResponse get_read_queue_backlog_configuration(const GetReadQueueBacklogConfiguration *data, GetReadQueueBacklogConfiguration_Response *response) {
+	response->header.length = sizeof(GetReadQueueBacklogConfiguration_Response);
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
@@ -135,19 +155,19 @@ BootloaderHandleMessageResponse get_error_log(const GetErrorLog *data, GetErrorL
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
 
-bool handle_frame_read_callback(void) {
+bool handle_frame_read_low_level_callback(void) {
 	static bool is_buffered = false;
-	static FrameRead_Callback cb;
+	static FrameReadLowLevel_Callback cb;
 
 	if(!is_buffered) {
-		tfp_make_default_header(&cb.header, bootloader_get_uid(), sizeof(FrameRead_Callback), FID_CALLBACK_FRAME_READ);
-		// TODO: Implement FrameRead callback handling
+		tfp_make_default_header(&cb.header, bootloader_get_uid(), sizeof(FrameReadLowLevel_Callback), FID_CALLBACK_FRAME_READ_LOW_LEVEL);
+		// TODO: Implement FrameReadLowLevel callback handling
 
 		return false;
 	}
 
 	if(bootloader_spitfp_is_send_possible(&bootloader_status.st)) {
-		bootloader_spitfp_send_ack_and_message(&bootloader_status, (uint8_t*)&cb, sizeof(FrameRead_Callback));
+		bootloader_spitfp_send_ack_and_message(&bootloader_status, (uint8_t*)&cb, sizeof(FrameReadLowLevel_Callback));
 		is_buffered = false;
 		return true;
 	} else {
