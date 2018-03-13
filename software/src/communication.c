@@ -27,6 +27,8 @@
 
 #include "tfcan.h"
 
+static bool frame_read_callback_enabled = false;
+
 BootloaderHandleMessageResponse handle_message(const void *message, void *response) {
 	switch(tfp_get_fid_from_message(message)) {
 		case FID_WRITE_FRAME_LOW_LEVEL: return write_frame_low_level(message, response);
@@ -53,11 +55,11 @@ BootloaderHandleMessageResponse write_frame_low_level(const WriteFrameLowLevel *
 	}
 
 	if (data->frame_type < CAN_V2_FRAME_TYPE_EXTENDED_DATA) {
-		if (data->identifier >= (1 << 11)) {
+		if (data->identifier >= (1u << 11)) {
 			return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
 		}
 	} else {
-		if (data->identifier >= (1 << 29)) {
+		if (data->identifier >= (1u << 29)) {
 			return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
 		}
 	}
@@ -76,31 +78,42 @@ BootloaderHandleMessageResponse write_frame_low_level(const WriteFrameLowLevel *
 }
 
 BootloaderHandleMessageResponse read_frame_low_level(const ReadFrameLowLevel *data, ReadFrameLowLevel_Response *response) {
-	// Need to zero the whole frame here because tfcan_dequeue_frame
-	// will not touch it if there is no frame to be read
-	TFCAN_Frame frame = {{0}};
-
 	response->header.length = sizeof(ReadFrameLowLevel_Response);
-	response->success       = tfcan_dequeue_frame(&frame);
 
-	const uint8_t length = MIN(frame.length, 8);
+	if (frame_read_callback_enabled) {
+		response->success     = false;
+		response->frame_type  = CAN_V2_FRAME_TYPE_STANDARD_DATA;
+		response->identifier  = 0;
+		response->data_length = 0;
+		memset(&response->data_data, 0, sizeof(response->data_data));
+	} else {
+		// Need to zero the whole frame here because tfcan_dequeue_frame
+		// will not touch it if there is no frame to be read
+		TFCAN_Frame frame = {{0}};
 
-	response->frame_type    = frame.mo_type;
-	response->identifier    = frame.identifier;
-	response->data_length   = frame.length;
-	memcpy(response->data_data, frame.data, length);
-	memset(&response->data_data[length], 0, sizeof(response->data_data) - length);
+		response->success     = tfcan_dequeue_frame(&frame);
+
+		const uint8_t length = MIN(frame.length, 8);
+
+		response->frame_type  = frame.mo_type;
+		response->identifier  = frame.identifier;
+		response->data_length = frame.length;
+		memcpy(response->data_data, frame.data, length);
+		memset(&response->data_data[length], 0, sizeof(response->data_data) - length);
+	}
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
 
 BootloaderHandleMessageResponse set_frame_read_callback_configuration(const SetFrameReadCallbackConfiguration *data) {
+	frame_read_callback_enabled = data->enabled;
 
 	return HANDLE_MESSAGE_RESPONSE_EMPTY;
 }
 
 BootloaderHandleMessageResponse get_frame_read_callback_configuration(const GetFrameReadCallbackConfiguration *data, GetFrameReadCallbackConfiguration_Response *response) {
 	response->header.length = sizeof(GetFrameReadCallbackConfiguration_Response);
+	response->enabled       = frame_read_callback_enabled;
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
@@ -159,14 +172,29 @@ bool handle_frame_read_low_level_callback(void) {
 	static bool is_buffered = false;
 	static FrameReadLowLevel_Callback cb;
 
-	if(!is_buffered) {
-		tfp_make_default_header(&cb.header, bootloader_get_uid(), sizeof(FrameReadLowLevel_Callback), FID_CALLBACK_FRAME_READ_LOW_LEVEL);
-		// TODO: Implement FrameReadLowLevel callback handling
+	if (!is_buffered) {
+		if (!frame_read_callback_enabled) {
+			return false;
+		}
 
-		return false;
+		TFCAN_Frame frame;
+
+		if (!tfcan_dequeue_frame(&frame)) {
+			return false;
+		}
+
+		const uint8_t length = MIN(frame.length, 8);
+
+		tfp_make_default_header(&cb.header, bootloader_get_uid(), sizeof(FrameReadLowLevel_Callback), FID_CALLBACK_FRAME_READ_LOW_LEVEL);
+
+		cb.frame_type  = frame.mo_type;
+		cb.identifier  = frame.identifier;
+		cb.data_length = frame.length;
+		memcpy(cb.data_data, frame.data, length);
+		memset(&cb.data_data[length], 0, sizeof(cb.data_data) - length);
 	}
 
-	if(bootloader_spitfp_is_send_possible(&bootloader_status.st)) {
+	if (bootloader_spitfp_is_send_possible(&bootloader_status.st)) {
 		bootloader_spitfp_send_ack_and_message(&bootloader_status, (uint8_t*)&cb, sizeof(FrameReadLowLevel_Callback));
 		is_buffered = false;
 		return true;
