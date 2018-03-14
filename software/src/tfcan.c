@@ -33,15 +33,18 @@
 TFCAN tfcan;
 
 //void IRQ_Hdlr_0(void) {
-	//logi("irq0: %b, %d\n\r", CAN->MSPND[0], XMC_CAN_FIFO_GetCurrentMO(&tfcan.mo[0]));
+	//logd("irq0: %b, %d\n\r", CAN->MSPND[0], XMC_CAN_FIFO_GetCurrentMO(&tfcan.mo[0]));
 //}
 
 void tfcan_init(void) {
-	logi("TFCAN %u\n\r", sizeof(TFCAN));
+	logd("sizeof(TFCAN) %u\n\r", sizeof(TFCAN));
 
 	memset(&tfcan, 0, sizeof(TFCAN));
 
 	tfcan.reconfigure_transceiver = true;
+	tfcan.reconfigure_queues = true;
+	tfcan.reconfigure_rx_filters = 0;
+
 	tfcan.baud_rate = 125000; // config default
 	tfcan.sample_point = 8000;
 	tfcan.sync_jump_width = 1;
@@ -52,7 +55,28 @@ void tfcan_init(void) {
 	tfcan.tx_node = tfcan.node[0];
 	tfcan.rx_node = tfcan.node[0];
 
-	tfcan.last_debug = system_timer_get_ms();
+	tfcan.tx_buffer_size = TFCAN_BUFFER_SIZE / 4; // config default
+	tfcan.tx_buffer_timeout = 0; // config default
+
+	tfcan.rx_buffer_size[0] = TFCAN_BUFFER_SIZE / 2; // config default
+	tfcan.rx_buffer_type[0] = TFCAN_BUFFER_TYPE_DATA; // config default
+
+	tfcan.rx_buffer_size[1] = TFCAN_BUFFER_SIZE / 4; // config default
+	tfcan.rx_buffer_type[1] = TFCAN_BUFFER_TYPE_REMOTE; // config default
+
+	for (uint8_t i = 0; i < TFCAN_BUFFER_SIZE; ++i) {
+		tfcan.rx_filter_mode[i] = TFCAN_FILTER_MODE_ACCEPT_ALL; // config default
+		tfcan.rx_filter_mask[i] = 0; // config default
+		tfcan.rx_filter_identifier[i] = 0; // config default
+	}
+
+	tfcan.tx_backlog_size = TFCAN_BACKLOG_SIZE / 2; // config default
+
+	tfcan.rx_backlog_size = TFCAN_BACKLOG_SIZE / 2; // config default
+
+#ifdef TFCAN_BUFFER_DEBUG
+	tfcan.last_buffer_debug = system_timer_get_ms();
+#endif
 
 	// configure clock
 	XMC_CAN_Init(CAN, TFCAN_CLOCK_SOURCE, TFCAN_FREQUENCY);
@@ -99,42 +123,46 @@ void tfcan_init(void) {
 }
 
 void tfcan_tick(void) {
-	/*if (system_timer_is_time_elapsed_ms(tfcan.last_debug, 1000)) {
+#ifdef TFCAN_BUFFER_DEBUG
+	if (system_timer_is_time_elapsed_ms(tfcan.last_buffer_debug, 1000)) {
 		uartbb_printf(">>>>>>\n\r");
 
 		for (uint8_t i = 0; i < tfcan.tx_buffer_size; ++i) {
-			logi("st-tx %02u %032_8b\n\r", i, tfcan_mo_get_status(tfcan.tx_buffer_mo[i]));
+			logd("st-tx %02u %032_8b\n\r", i, tfcan_mo_get_status(tfcan.tx_buffer_mo[i]));
 		}
 
 		if (tfcan.tx_buffer_size > 0) {
-			logi("fgpr-tx %032_8b\n\r", tfcan.tx_buffer_mo[0]->MOFGPR);
+			logd("fgpr-tx %032_8b\n\r", tfcan.tx_buffer_mo[0]->MOFGPR);
 		}
 
-		logi("nx-tx %u\n\r", tfcan.tx_buffer_mo_next_index);
-		logi("bl-tx %u[%u] -> %u[%u]\n\r", tfcan.tx_backlog_start, tfcan.tx_backlog[tfcan.tx_backlog_start].mo_type,
+		logd("nx-tx %u\n\r", tfcan.tx_buffer_mo_next_index);
+		logd("bl-tx %u[%u] -> %u[%u]\n\r", tfcan.tx_backlog_start, tfcan.tx_backlog[tfcan.tx_backlog_start].mo_type,
 		                                   tfcan.tx_backlog_end, tfcan.tx_backlog[tfcan.tx_backlog_end].mo_type);
 
 		uartbb_printf("------\n\r");
 
-		for (uint8_t k = 0; k < TFCAN_RX_BUFFER_SIZE; ++k) {
+		for (uint8_t k = 0; k < TFCAN_BUFFER_SIZE; ++k) {
 			for (uint8_t i = 0; i < tfcan.rx_buffer_size[k]; ++i) {
-				logi("st-rx:%02u %02u %032_8b\n\r", k, i, tfcan_mo_get_status(tfcan.rx_buffer_mo[k][i]));
+				logd("st-rx:%02u %02u %032_8b\n\r", k, i, tfcan_mo_get_status(tfcan.rx_buffer_mo[k][i]));
 			}
 
 			if (tfcan.rx_buffer_size[k] > 0) {
-				logi("fgpr-rx:%02u %032_8b\n\r", k, tfcan.rx_buffer_mo[k][0]->MOFGPR);
-				logi("nx-rx:%02u %d\n\r", k, tfcan.rx_buffer_mo_next_index[k]);
+				logd("fgpr-rx:%02u %032_8b\n\r", k, tfcan.rx_buffer_mo[k][0]->MOFGPR);
+				logd("nx-rx:%02u %d\n\r", k, tfcan.rx_buffer_mo_next_index[k]);
 			}
 		}
 
-		logi("bl-rx %u[%u] -> %u[%u]\n\r", tfcan.rx_backlog_start, tfcan.rx_backlog[tfcan.rx_backlog_start].mo_type,
+		logd("bl-rx %u[%u] -> %u[%u]\n\r", tfcan.rx_backlog_start, tfcan.rx_backlog[tfcan.rx_backlog_start].mo_type,
 		                                   tfcan.rx_backlog_end, tfcan.rx_backlog[tfcan.rx_backlog_end].mo_type);
 		uartbb_printf("<<<<<<\n\r");
 
-		tfcan.last_debug = system_timer_get_ms();
-	}*/
+		tfcan.last_buffer_debug = system_timer_get_ms();
+	}
+#endif
 
 	tfcan_reconfigure_transceiver();
+	tfcan_reconfigure_queues();
+	tfcan_reconfigure_rx_filters();
 	tfcan_check_tx_buffer_timeout();
 
 	// write at most TX FIFO size frames
@@ -152,7 +180,7 @@ void tfcan_tick(void) {
 			break; // TX FIFO full
 		}
 
-		logi("tx %u -> %u\n\r", tfcan.tx_backlog_start, tfcan.tx_buffer_mo_next_index);
+		logd("tx %u -> %u\n\r", tfcan.tx_backlog_start, tfcan.tx_buffer_mo_next_index);
 
 		// copy frame into MO
 		TFCAN_Frame *frame = &tfcan.tx_backlog[tfcan.tx_backlog_start];
@@ -164,6 +192,12 @@ void tfcan_tick(void) {
 		tfcan.tx_backlog_start = (tfcan.tx_backlog_start + 1) % tfcan.tx_backlog_size;
 
 		// schedule MO for transmission
+		if (tfcan.tx_buffer_size == 1) {
+			// FIXME: in a TX FIFO with a single MO the TXEN1 bit gets lost on transmission,
+			//        stopping the TX FIFO logic. force the TXEN1 bit in this case
+			tfcan_mo_change_status(tfcan.tx_buffer_mo[0], TFCAN_MO_SET_STATUS_TX_ENABLE1);
+		}
+
 		tfcan_mo_change_status(tx_buffer_mo_next, TFCAN_MO_SET_STATUS_TX_REQUEST);
 
 		tfcan.tx_buffer_mo_timestamp[tfcan.tx_buffer_mo_next_index] = system_timer_get_ms();
@@ -171,15 +205,15 @@ void tfcan_tick(void) {
 	}
 
 	// collect RX MO frame counter values
-	for (uint8_t k = 0; k < TFCAN_MO_SIZE; ++k) {
+	for (uint8_t k = 0; k < TFCAN_BUFFER_SIZE; ++k) {
 		tfcan.mo_frame_counter[k] = -1;
 	}
 
-	for (uint8_t k = 0; k < TFCAN_RX_BUFFER_SIZE; ++k) {
+	for (uint8_t k = 0; k < TFCAN_BUFFER_SIZE; ++k) {
 		const uint8_t rx_buffer_size = tfcan.rx_buffer_size[k];
 
 		if (rx_buffer_size == 0) {
-			continue;
+			break; // remaining RX FIFOs not configured
 		}
 
 		CAN_MO_TypeDef **rx_buffer_mo = tfcan.rx_buffer_mo[k];
@@ -197,23 +231,23 @@ void tfcan_tick(void) {
 	// calculate RX MO age values
 	const uint16_t rx_frame_counter = (tfcan.rx_node->NFCR & (uint32_t)CAN_NODE_NFCR_CFC_Msk) >> CAN_NODE_NFCR_CFC_Pos;
 
-	for (uint8_t k = 0; k < TFCAN_MO_SIZE; ++k) {
+	for (uint8_t k = 0; k < TFCAN_BUFFER_SIZE; ++k) {
 		if (tfcan.mo_frame_counter[k] >= 0) {
 			tfcan.mo_age[k] = rx_frame_counter - (uint16_t)tfcan.mo_frame_counter[k];
 		}
 	}
 
 	// read at most RX FIFO size frames, sorted by RX MO age, oldest first
-	for (uint8_t z = 0; z < TFCAN_MO_SIZE; ++z) {
+	for (uint8_t z = 0; z < TFCAN_BUFFER_SIZE; ++z) {
 		int8_t k = -1;
 		uint16_t rx_buffer_mo_next_age_max = 0;
 
 		// find oldest RX MO
-		for (int8_t n = 0; n < TFCAN_RX_BUFFER_SIZE; ++n) {
+		for (int8_t n = 0; n < TFCAN_BUFFER_SIZE; ++n) {
 			const uint8_t rx_buffer_size = tfcan.rx_buffer_size[n];
 
 			if (rx_buffer_size == 0) {
-				continue; // RX FIFO not configured
+				break; // remaining RX FIFOs not configured
 			}
 
 			const uint8_t rx_buffer_mo_next_index = tfcan.rx_buffer_mo_next_index[n];
@@ -241,7 +275,7 @@ void tfcan_tick(void) {
 
 		// check RX backlog
 		if (tfcan.rx_backlog[tfcan.rx_backlog_end].mo_type == TFCAN_MO_TYPE_INVALID) {
-			logi("rx %u:%u (%d) -> %u\n\r", k, rx_buffer_mo_next_index, rx_buffer_mo_age, tfcan.rx_backlog_end);
+			logd("rx %u:%u (%d) -> %u\n\r", k, rx_buffer_mo_next_index, rx_buffer_mo_age, tfcan.rx_backlog_end);
 
 			TFCAN_Frame *frame = &tfcan.rx_backlog[tfcan.rx_backlog_end];
 			uint8_t status;
@@ -261,7 +295,7 @@ void tfcan_tick(void) {
 
 				tfcan_mo_get_data(rx_buffer_mo_next, frame->data, &frame->length);
 
-				logi("rx %u:%u (%d) -> %u try\n\r", k, rx_buffer_mo_next_index, rx_buffer_mo_age, tfcan.rx_backlog_end);
+				logd("rx %u:%u (%d) -> %u try\n\r", k, rx_buffer_mo_next_index, rx_buffer_mo_age, tfcan.rx_backlog_end);
 
 				status = tfcan_mo_get_status(rx_buffer_mo_next);
 			} while ((status & TFCAN_MO_STATUS_NEW_DATA) != 0 ||
@@ -269,11 +303,12 @@ void tfcan_tick(void) {
 
 			tfcan.rx_backlog_end = (tfcan.rx_backlog_end + 1) % tfcan.rx_backlog_size;
 		} else {
-			logi("rx %u:%u (%d) drop\n\r", k, rx_buffer_mo_next_index, rx_buffer_mo_age);
+			logd("rx %u:%u (%d) drop\n\r", k, rx_buffer_mo_next_index, rx_buffer_mo_age);
 
 			tfcan_mo_change_status(rx_buffer_mo_next, TFCAN_MO_RESET_STATUS_RX_PENDING);
 		}
 
+		tfcan.rx_buffer_mo_frame_counter[k][rx_buffer_mo_next_index] = -1;
 		tfcan.rx_buffer_mo_next_index[k] = (rx_buffer_mo_next_index + 1) % tfcan.rx_buffer_size[k];
 	}
 }
@@ -298,6 +333,8 @@ void tfcan_reconfigure_transceiver(void) {
 	}
 
 	tfcan.reconfigure_transceiver = false;
+
+	logd("reconfigure transceiver\n\r");
 
 	tfcan_set_config_mode(true);
 
@@ -360,7 +397,7 @@ void tfcan_reconfigure_transceiver(void) {
 
 	const uint32_t best_tseg2 = best_time_quanta - best_tseg1 - 1;
 
-	logi("baud rate %u, div %u, brp %u, tseg1 %u, tseg2 %u\n\r",
+	logd("baud rate %u, div %u, brp %u, tseg1 %u, tseg2 %u\n\r",
 	     tfcan.baud_rate, best_div, best_brp, best_tseg1, best_tseg2);
 
 	const uint32_t nbtr = (((uint32_t)(best_brp - 1)              << CAN_NODE_NBTR_BRP_Pos)   & (uint32_t)CAN_NODE_NBTR_BRP_Msk) |
@@ -399,29 +436,22 @@ void tfcan_reconfigure_transceiver(void) {
 }
 
 void tfcan_reconfigure_queues(void) {
-	for (uint8_t i = 0; i < TFCAN_RX_BUFFER_SIZE; ++i) {
-		tfcan.rx_buffer_size[i] = 0;
-		tfcan.rx_buffer_type[i] = TFCAN_BUFFER_TYPE_DATA;
+	if (!tfcan.reconfigure_queues) {
+		return;
+	}
+
+	tfcan.reconfigure_queues = false;
+
+	logd("reconfigure queues\n\r");
+
+	// reset queues
+	tfcan.tx_buffer_mo_next_index = 0;
+	tfcan.tx_buffer_timeout_pending = false;
+
+	for (uint8_t i = 0; i < TFCAN_BUFFER_SIZE; ++i) {
 		tfcan.rx_buffer_mo_next_index[i] = 0;
 	}
 
-	// reset queues
-	tfcan.tx_buffer_size = TFCAN_MO_SIZE / 2;
-	tfcan.tx_buffer_mo_next_index = 0;
-	tfcan.tx_buffer_timeout = 3000;
-	tfcan.tx_buffer_timeout_pending = false;
-	tfcan.tx_buffer_timeout_mo_index = 0;
-	tfcan.tx_buffer_timeout_settle_timestamp = 0;
-
-	tfcan.rx_buffer_size[0] = TFCAN_MO_SIZE / 4;
-	tfcan.rx_buffer_type[0] = TFCAN_BUFFER_TYPE_DATA;
-	tfcan.rx_buffer_mo_next_index[0] = 0;
-
-	tfcan.rx_buffer_size[1] = TFCAN_MO_SIZE / 4;
-	tfcan.rx_buffer_type[1] = TFCAN_BUFFER_TYPE_REMOTE;
-	tfcan.rx_buffer_mo_next_index[1] = 0;
-
-	tfcan.tx_backlog_size = TFCAN_BACKLOG_SIZE / 2;
 	tfcan.tx_backlog = tfcan.backlog;
 	tfcan.tx_backlog_start = 0;
 	tfcan.tx_backlog_end = 0;
@@ -430,7 +460,6 @@ void tfcan_reconfigure_queues(void) {
 		tfcan.tx_backlog[i].mo_type = TFCAN_MO_TYPE_INVALID;
 	}
 
-	tfcan.rx_backlog_size = TFCAN_BACKLOG_SIZE / 2;
 	tfcan.rx_backlog = &tfcan.backlog[tfcan.tx_backlog_size];
 	tfcan.rx_backlog_start = 0;
 	tfcan.rx_backlog_end = 0;
@@ -469,27 +498,27 @@ void tfcan_reconfigure_queues(void) {
 	for (uint8_t i = 0; i < tfcan.tx_buffer_size; ++i) {
 		tfcan.tx_buffer_mo[i] = (CAN_MO_TypeDef *)&CAN_MO->MO[mo_offset + i];
 
+		tfcan_mo_init_tx(tfcan.tx_buffer_mo[i]);
+		//tfcan_mo_set_irq_pointer(tfcan.tx_buffer_mo[i], TFCAN_MO_IRQ_POINTER_TRANSMIT, TFCAN_TX_SRQ_INDEX);
+		//tfcan_mo_enable_event(tfcan.tx_buffer_mo[i], TFCAN_MO_EVENT_TRANSMIT);
+
 		XMC_CAN_AllocateMOtoNodeList(CAN, tx_node_index, mo_offset + i);
 		while (!XMC_CAN_IsPanelControlReady(CAN)) {}
-
-		tfcan_mo_init_tx(tfcan.tx_buffer_mo[i]);
-		tfcan_mo_set_irq_pointer(tfcan.tx_buffer_mo[i], TFCAN_MO_IRQ_POINTER_TRANSMIT, TFCAN_TX_SRQ_INDEX);
-		tfcan_mo_enable_event(tfcan.tx_buffer_mo[i], TFCAN_MO_EVENT_TRANSMIT);
 	}
 
 	// configure TX FIFO
 	if (tfcan.tx_buffer_size > 0) {
-		tfcan_mo_init_tx_fifo_base(tfcan.tx_buffer_mo[0], mo_offset, mo_offset + tfcan.tx_buffer_size - 1);
-
 		for (uint8_t i = 1; i < tfcan.tx_buffer_size; ++i) {
 			tfcan_mo_init_tx_fifo_slave(tfcan.tx_buffer_mo[i], mo_offset);
 		}
+
+		tfcan_mo_init_tx_fifo_base(tfcan.tx_buffer_mo[0], mo_offset, mo_offset + tfcan.tx_buffer_size - 1);
 	}
 
 	// configure RX MOs and FIFOs
 	mo_offset += tfcan.tx_buffer_size;
 
-	for (uint8_t k = 0; k < TFCAN_RX_BUFFER_SIZE; ++k) {
+	for (uint8_t k = 0; k < TFCAN_BUFFER_SIZE; ++k) {
 		tfcan.rx_buffer_mo[k] = &tfcan.mo[mo_offset];
 		tfcan.rx_buffer_mo_frame_counter[k] = &tfcan.mo_frame_counter[mo_offset];
 		tfcan.rx_buffer_mo_age[k] = &tfcan.mo_age[mo_offset];
@@ -502,25 +531,57 @@ void tfcan_reconfigure_queues(void) {
 		for (uint8_t i = 0; i < rx_buffer_size; ++i) {
 			rx_buffer_mo[i] = (CAN_MO_TypeDef *)&CAN_MO->MO[mo_offset + i];
 
+			tfcan_mo_init_rx(rx_buffer_mo[i], rx_buffer_type);
+			//tfcan_mo_set_irq_pointer(rx_buffer_mo[i], TFCAN_MO_IRQ_POINTER_RECEIVE, TFCAN_RX_SRQ_INDEX);
+			//tfcan_mo_enable_event(rx_buffer_mo[i], TFCAN_MO_EVENT_RECEIVE);
+
 			XMC_CAN_AllocateMOtoNodeList(CAN, rx_node_index, mo_offset + i);
 			while (!XMC_CAN_IsPanelControlReady(CAN)) {}
-
-			tfcan_mo_init_rx(rx_buffer_mo[i], rx_buffer_type);
-			tfcan_mo_set_irq_pointer(rx_buffer_mo[i], TFCAN_MO_IRQ_POINTER_RECEIVE, TFCAN_RX_SRQ_INDEX);
-			tfcan_mo_enable_event(rx_buffer_mo[i], TFCAN_MO_EVENT_RECEIVE);
 		}
 
 		// configure RX FIFO
 		if (rx_buffer_size > 0) {
-			tfcan_mo_init_rx_fifo_base(rx_buffer_mo[0], mo_offset, mo_offset + rx_buffer_size - 1);
-
 			for (uint8_t i = 1; i < rx_buffer_size; ++i) {
 				tfcan_mo_init_rx_fifo_slave(rx_buffer_mo[i], mo_offset);
+				tfcan_mo_change_status(rx_buffer_mo[i], TFCAN_MO_SET_STATUS_RX_ENABLE);
 			}
+
+			tfcan_mo_set_rx_filter(rx_buffer_mo[0], tfcan.rx_filter_mode[k],
+			                       tfcan.rx_filter_mask[k], tfcan.rx_filter_identifier[k]);
+			tfcan_mo_init_rx_fifo_base(rx_buffer_mo[0], mo_offset, mo_offset + rx_buffer_size - 1);
+			tfcan_mo_change_status(rx_buffer_mo[0], TFCAN_MO_SET_STATUS_RX_ENABLE);
 		}
 
 		mo_offset += rx_buffer_size;
 	}
+}
+
+void tfcan_reconfigure_rx_filters(void) {
+	if (tfcan.reconfigure_rx_filters == 0) {
+		return;
+	}
+
+	logd("reconfigure rx filters: %032_8b\n\r", tfcan.reconfigure_rx_filters);
+
+	for (uint8_t k = 0; k < TFCAN_BUFFER_SIZE; ++k) {
+		CAN_MO_TypeDef **rx_buffer_mo = tfcan.rx_buffer_mo[k];
+		const uint8_t rx_buffer_size = tfcan.rx_buffer_size[k];
+
+		if (rx_buffer_size == 0) {
+			break; // remaining RX FIFOs not configured
+		}
+
+		if ((tfcan.reconfigure_rx_filters & (1u << k)) == 0) {
+			continue;
+		}
+
+		tfcan_mo_change_status(rx_buffer_mo[0], TFCAN_MO_RESET_STATUS_RX_ENABLE);
+		tfcan_mo_set_rx_filter(rx_buffer_mo[0], tfcan.rx_filter_mode[k],
+		                       tfcan.rx_filter_mask[k], tfcan.rx_filter_identifier[k]);
+		tfcan_mo_change_status(rx_buffer_mo[0], TFCAN_MO_SET_STATUS_RX_ENABLE);
+	}
+
+	tfcan.reconfigure_rx_filters = 0;
 }
 
 void tfcan_check_tx_buffer_timeout(void) {
@@ -546,7 +607,7 @@ void tfcan_check_tx_buffer_timeout(void) {
 			const uint8_t index = tfcan_mo_get_tx_fifo_current(tfcan.tx_buffer_mo[0]);
 
 			if (tfcan.tx_buffer_timeout_mo_index != index) {
-				logi("tx %d timeout? current changed to %u\n\r", tfcan.tx_buffer_timeout_mo_index, index);
+				logd("tx %d timeout? current changed to %u\n\r", tfcan.tx_buffer_timeout_mo_index, index);
 			}
 
 			return;
@@ -562,7 +623,7 @@ void tfcan_check_tx_buffer_timeout(void) {
 		tfcan.tx_buffer_timeout_pending = true;
 		tfcan.tx_buffer_timeout_settle_timestamp = system_timer_get_ms();
 
-		logi("tx %d timeout!\n\r", tfcan.tx_buffer_timeout_mo_index);
+		logd("tx %d timeout!\n\r", tfcan.tx_buffer_timeout_mo_index);
 
 		// disable transmission to ensure consitent register content while
 		// modifying MOFGPR.CUR and MOSTAT.TXEN1
@@ -601,7 +662,7 @@ void tfcan_check_tx_buffer_timeout(void) {
 			tfcan_mo_set_tx_fifo_current(tfcan.tx_buffer_mo[0], index_next);
 			tfcan_mo_change_status(mo_next, TFCAN_MO_SET_STATUS_TX_ENABLE1);
 		} else if (tfcan.tx_buffer_timeout_mo_index != index) {
-			logi("tx %d timeout! current changed to %u\n\r", tfcan.tx_buffer_timeout_mo_index, index);
+			logd("tx %d timeout! current changed to %u\n\r", tfcan.tx_buffer_timeout_mo_index, index);
 		}
 
 		// re-enable transmission

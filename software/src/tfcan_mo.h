@@ -41,6 +41,14 @@ typedef enum {
 	TFCAN_BUFFER_TYPE_REMOTE
 } TFCAN_BufferType;
 
+// must match Bricklet API FilterMode enum
+typedef enum {
+	TFCAN_FILTER_MODE_ACCEPT_ALL = 0,
+	TFCAN_FILTER_MODE_MATCH_STANDARD_ONLY,
+	TFCAN_FILTER_MODE_MATCH_EXTENDED_ONLY,
+	TFCAN_FILTER_MODE_MATCH_STANDARD_AND_EXTENDED
+} TFCAN_FilterMode;
+
 typedef enum {
 	TFCAN_MO_STATUS_RX_PENDING             = CAN_MO_MOSTAT_RXPND_Msk,
 	TFCAN_MO_STATUS_TX_PENDING             = CAN_MO_MOSTAT_TXPND_Msk,
@@ -136,5 +144,8 @@ void tfcan_mo_get_data(CAN_MO_TypeDef *const mo, uint8_t *const data,
 
 void tfcan_mo_set_tx_fifo_current(CAN_MO_TypeDef *const mo, const uint8_t current);
 uint8_t tfcan_mo_get_tx_fifo_current(CAN_MO_TypeDef *const mo);
+
+void tfcan_mo_set_rx_filter(CAN_MO_TypeDef *const mo, const TFCAN_FilterMode mode,
+                            const uint32_t mask, const uint32_t match);
 
 #endif

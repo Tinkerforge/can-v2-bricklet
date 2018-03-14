@@ -44,9 +44,9 @@ void communication_init(void);
 #define CAN_V2_TRANSCEIVER_MODE_READ_ONLY 2
 
 #define CAN_V2_FILTER_MODE_ACCEPT_ALL 0
-#define CAN_V2_FILTER_MODE_MATCH_STANDARD_AND_EXTENDED 1
-#define CAN_V2_FILTER_MODE_MATCH_STANDARD_ONLY 2
-#define CAN_V2_FILTER_MODE_MATCH_EXTENDED_ONLY 3
+#define CAN_V2_FILTER_MODE_MATCH_STANDARD_ONLY 1
+#define CAN_V2_FILTER_MODE_MATCH_EXTENDED_ONLY 2
+#define CAN_V2_FILTER_MODE_MATCH_STANDARD_AND_EXTENDED 3
 
 #define CAN_V2_BOOTLOADER_MODE_BOOTLOADER 0
 #define CAN_V2_BOOTLOADER_MODE_FIRMWARE 1
@@ -142,8 +142,8 @@ typedef struct {
 	uint8_t write_buffer_size;
 	int32_t write_buffer_timeout;
 	uint16_t write_backlog_size;
-	uint8_t read_buffer_size_length;
-	int8_t read_buffer_size_data[32];
+	uint8_t read_buffer_sizes_length;
+	int8_t read_buffer_sizes_data[32];
 	uint16_t read_backlog_size;
 } __attribute__((__packed__)) SetQueueConfigurationLowLevel;
 
@@ -156,8 +156,8 @@ typedef struct {
 	uint8_t write_buffer_size;
 	int32_t write_buffer_timeout;
 	uint16_t write_backlog_size;
-	uint8_t read_buffer_size_length;
-	int8_t read_buffer_size_data[32];
+	uint8_t read_buffer_sizes_length;
+	int8_t read_buffer_sizes_data[32];
 	uint16_t read_backlog_size;
 } __attribute__((__packed__)) GetQueueConfigurationLowLevel_Response;
 
@@ -166,7 +166,7 @@ typedef struct {
 	uint8_t buffer_index;
 	uint8_t filter_mode;
 	uint32_t filter_mask;
-	uint32_t filter_match;
+	uint32_t filter_identifier;
 } __attribute__((__packed__)) SetReadFilterConfiguration;
 
 typedef struct {
@@ -178,7 +178,7 @@ typedef struct {
 	TFPMessageHeader header;
 	uint8_t filter_mode;
 	uint32_t filter_mask;
-	uint32_t filter_match;
+	uint32_t filter_identifier;
 } __attribute__((__packed__)) GetReadFilterConfiguration_Response;
 
 typedef struct {

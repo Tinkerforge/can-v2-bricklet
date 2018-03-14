@@ -112,7 +112,7 @@ void tfcan_mo_init_rx(CAN_MO_TypeDef *const mo, const TFCAN_BufferType type) {
 	                           TFCAN_MO_RESET_STATUS_DIRECTION);
 
 	// configure MPN and clear all other MOIPR parts
-	mo->MOIPR = (((uint32_t)mo - CAN_BASE - 0x1000U) / 0x0020U) << CAN_MO_MOIPR_MPN_Pos;
+	mo->MOIPR = (((uint32_t)mo - CAN_BASE - 0x1000u) / 0x0020u) << CAN_MO_MOIPR_MPN_Pos;
 
 	// reset all MOFCR parts
 	mo->MOFCR = 0;
@@ -124,7 +124,7 @@ void tfcan_mo_init_rx(CAN_MO_TypeDef *const mo, const TFCAN_BufferType type) {
 	mo->MOAMR = 0;
 
 	// clear idenfifier and set priority to 1
-	mo->MOAR = 1U << CAN_MO_MOAR_PRI_Pos;
+	mo->MOAR = 1u << CAN_MO_MOAR_PRI_Pos;
 
 	// clear data
 	mo->MODATAL = 0;
@@ -136,9 +136,8 @@ void tfcan_mo_init_rx(CAN_MO_TypeDef *const mo, const TFCAN_BufferType type) {
 		mo->MOFCR |= (uint32_t)CAN_MO_MOFCR_RMM_Msk;
 	}
 
-	// enable RX and mark as valid
-	tfcan_mo_change_status(mo, TFCAN_MO_SET_STATUS_RX_ENABLE |
-	                           TFCAN_MO_SET_STATUS_MESSAGE_VALID);
+	// mark as valid
+	tfcan_mo_change_status(mo, TFCAN_MO_SET_STATUS_MESSAGE_VALID);
 }
 
 void tfcan_mo_init_rx_fifo_base(CAN_MO_TypeDef *const mo, const uint8_t base_and_bottom,
@@ -193,11 +192,11 @@ void tfcan_mo_set_identifier(CAN_MO_TypeDef *const mo, const TFCAN_MOType type,
 	if (type == TFCAN_MO_TYPE_STANDARD_DATA || type == TFCAN_MO_TYPE_STANDARD_REMOTE) {
 		mo->MOAR &= ~(uint32_t)CAN_MO_MOAR_IDE_Msk;
 		mo->MOAR = (mo->MOAR & ~(uint32_t)CAN_MO_MOAR_ID_Msk) |
-		           ((identifier << 18) & CAN_MO_MOAR_ID_Msk);
+		           ((identifier << 18) & (uint32_t)CAN_MO_MOAR_ID_Msk);
 	} else {
 		mo->MOAR |= (uint32_t)CAN_MO_MOAR_IDE_Msk;
 		mo->MOAR = (mo->MOAR & ~(uint32_t)CAN_MO_MOAR_ID_Msk) |
-		           (identifier & CAN_MO_MOAR_ID_Msk);
+		           (identifier & (uint32_t)CAN_MO_MOAR_ID_Msk);
 	}
 
 	if (type == TFCAN_MO_TYPE_STANDARD_DATA || type == TFCAN_MO_TYPE_EXTENDED_DATA) {
@@ -273,4 +272,24 @@ void tfcan_mo_set_tx_fifo_current(CAN_MO_TypeDef *const mo, const uint8_t curren
 
 uint8_t tfcan_mo_get_tx_fifo_current(CAN_MO_TypeDef *const mo) {
 	return (uint8_t)((uint32_t)(mo->MOFGPR & CAN_MO_MOFGPR_CUR_Msk) >> CAN_MO_MOFGPR_CUR_Pos);
+}
+
+void tfcan_mo_set_rx_filter(CAN_MO_TypeDef *const mo, const TFCAN_FilterMode mode,
+                            const uint32_t mask, const uint32_t identifier) {
+	if (mode == TFCAN_FILTER_MODE_ACCEPT_ALL) {
+		mo->MOAMR = 0;
+		mo->MOAR &= ~((uint32_t)CAN_MO_MOAR_IDE_Msk | (uint32_t)CAN_MO_MOAR_ID_Msk);
+	} else if (mode == TFCAN_FILTER_MODE_MATCH_STANDARD_ONLY) {
+		mo->MOAMR = (uint32_t)CAN_MO_MOAMR_MIDE_Msk | ((mask << 18) & (uint32_t)CAN_MO_MOAMR_AM_Msk);
+		mo->MOAR = (mo->MOAR & ~((uint32_t)CAN_MO_MOAR_ID_Msk | (uint32_t)CAN_MO_MOAR_IDE_Msk)) |
+		           ((identifier << 18) & (uint32_t)CAN_MO_MOAR_ID_Msk);
+	} else if (mode == TFCAN_FILTER_MODE_MATCH_EXTENDED_ONLY) {
+		mo->MOAMR = (uint32_t)CAN_MO_MOAMR_MIDE_Msk | (mask & (uint32_t)CAN_MO_MOAMR_AM_Msk);
+		mo->MOAR = (mo->MOAR & ~(uint32_t)CAN_MO_MOAR_ID_Msk) |
+		           (uint32_t)CAN_MO_MOAR_IDE_Msk | (identifier & CAN_MO_MOAR_ID_Msk);
+	} else if (mode == TFCAN_FILTER_MODE_MATCH_STANDARD_AND_EXTENDED) {
+		mo->MOAMR = mask & (uint32_t)CAN_MO_MOAMR_AM_Msk;
+		mo->MOAR = (mo->MOAR & ~(uint32_t)CAN_MO_MOAR_ID_Msk) |
+		           (uint32_t)CAN_MO_MOAR_IDE_Msk | (identifier & (uint32_t)CAN_MO_MOAR_ID_Msk);
+	}
 }

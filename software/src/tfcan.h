@@ -49,6 +49,9 @@ typedef struct {
 
 typedef struct {
 	bool reconfigure_transceiver;
+	bool reconfigure_queues;
+	uint32_t reconfigure_rx_filters; // bitmask
+
 	uint32_t baud_rate; // config, [10000..10000000] bps
 	uint16_t sample_point; // [0..10000] 0.01 %
 	uint8_t sync_jump_width; // [1..4] // FIXME: bit-timing calculation assumes this to be 1
@@ -58,39 +61,45 @@ typedef struct {
 	CAN_NODE_TypeDef *tx_node;
 	CAN_NODE_TypeDef *rx_node;
 
-	CAN_MO_TypeDef *mo[TFCAN_MO_SIZE];
-	int32_t mo_frame_counter[TFCAN_MO_SIZE];
-	uint16_t mo_age[TFCAN_MO_SIZE];
+	CAN_MO_TypeDef *mo[TFCAN_BUFFER_SIZE];
+	int32_t mo_frame_counter[TFCAN_BUFFER_SIZE];
+	uint16_t mo_age[TFCAN_BUFFER_SIZE];
 
-	uint8_t tx_buffer_size; // [0..TFCAN_BUFFER_SIZE]
+	uint8_t tx_buffer_size; // config, [0..TFCAN_BUFFER_SIZE]
 	CAN_MO_TypeDef **tx_buffer_mo;
 	uint8_t tx_buffer_mo_next_index;
-	uint32_t tx_buffer_mo_timestamp[TFCAN_MO_SIZE];
-	int32_t tx_buffer_timeout; // < 0 (single-shot), = 0 (infinite), > 0 (milliseconds)
+	uint32_t tx_buffer_mo_timestamp[TFCAN_BUFFER_SIZE];
+	int32_t tx_buffer_timeout; // config, < 0 (single-shot), = 0 (infinite), > 0 (milliseconds)
 	bool tx_buffer_timeout_pending;
 	uint8_t tx_buffer_timeout_mo_index;
 	uint32_t tx_buffer_timeout_settle_timestamp;
 
-	uint8_t rx_buffer_size[TFCAN_RX_BUFFER_SIZE]; // [0..TFCAN_RX_BUFFER_SIZE]
-	TFCAN_BufferType rx_buffer_type[TFCAN_RX_BUFFER_SIZE];
-	CAN_MO_TypeDef **rx_buffer_mo[TFCAN_RX_BUFFER_SIZE];
-	uint8_t rx_buffer_mo_next_index[TFCAN_RX_BUFFER_SIZE];
-	int32_t *rx_buffer_mo_frame_counter[TFCAN_RX_BUFFER_SIZE];
-	uint16_t *rx_buffer_mo_age[TFCAN_RX_BUFFER_SIZE];
+	uint8_t rx_buffer_size[TFCAN_BUFFER_SIZE]; // config, [0..TFCAN_BUFFER_SIZE]
+	TFCAN_BufferType rx_buffer_type[TFCAN_BUFFER_SIZE]; // config
+	CAN_MO_TypeDef **rx_buffer_mo[TFCAN_BUFFER_SIZE];
+	uint8_t rx_buffer_mo_next_index[TFCAN_BUFFER_SIZE];
+	int32_t *rx_buffer_mo_frame_counter[TFCAN_BUFFER_SIZE];
+	uint16_t *rx_buffer_mo_age[TFCAN_BUFFER_SIZE];
 
 	TFCAN_Frame backlog[TFCAN_BACKLOG_SIZE];
 
-	uint16_t tx_backlog_size; // [0..TFCAN_BACKLOG_SIZE]
+	uint16_t tx_backlog_size; // config, [0..TFCAN_BACKLOG_SIZE]
 	TFCAN_Frame *tx_backlog;
 	uint16_t tx_backlog_start;
 	uint16_t tx_backlog_end;
 
-	uint16_t rx_backlog_size; // [0..TFCAN_BACKLOG_SIZE]
+	uint16_t rx_backlog_size; // config, [0..TFCAN_BACKLOG_SIZE]
 	TFCAN_Frame *rx_backlog;
 	uint16_t rx_backlog_start;
 	uint16_t rx_backlog_end;
 
-	uint32_t last_debug;
+	TFCAN_FilterMode rx_filter_mode[TFCAN_BUFFER_SIZE]; // config
+	uint32_t rx_filter_mask[TFCAN_BUFFER_SIZE]; // config
+	uint32_t rx_filter_identifier[TFCAN_BUFFER_SIZE]; // config
+
+#ifdef TFCAN_BUFFER_DEBUG
+	uint32_t last_buffer_debug;
+#endif
 } TFCAN; // avoid name collision with global XMC CAN object named CAN
 
 void tfcan_init(void);
@@ -100,6 +109,7 @@ void tfcan_set_config_mode(const bool enable);
 
 void tfcan_reconfigure_transceiver(void);
 void tfcan_reconfigure_queues(void);
+void tfcan_reconfigure_rx_filters(void);
 
 void tfcan_check_tx_buffer_timeout(void);
 

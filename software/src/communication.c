@@ -24,6 +24,7 @@
 #include "bricklib2/utility/communication_callback.h"
 #include "bricklib2/utility/util_definitions.h"
 #include "bricklib2/protocols/tfp/tfp.h"
+#include "bricklib2/logging/logging.h"
 
 #include "tfcan.h"
 
@@ -140,23 +141,103 @@ BootloaderHandleMessageResponse get_transceiver_configuration(const GetTransceiv
 }
 
 BootloaderHandleMessageResponse set_queue_configuration_low_level(const SetQueueConfigurationLowLevel *data) {
+	if (data->read_buffer_sizes_length > TFCAN_BUFFER_SIZE ||
+	    data->write_backlog_size + data->read_backlog_size > TFCAN_BACKLOG_SIZE) {
+		return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+	}
+
+	uint16_t total_buffer_size = data->write_buffer_size;
+
+	for (uint8_t i = 0; i < data->read_buffer_sizes_length; ++i) {
+		if (data->read_buffer_sizes_data[i] == 0) {
+			return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+		}
+
+		total_buffer_size += ABS(data->read_buffer_sizes_data[i]);
+	}
+
+	if (total_buffer_size > TFCAN_BUFFER_SIZE) {
+		return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+	}
+
+	tfcan.reconfigure_queues    = true;
+	tfcan.tx_buffer_size        = data->write_buffer_size;
+	tfcan.tx_buffer_timeout     = MAX(data->write_buffer_timeout, -1);
+	tfcan.tx_backlog_size       = data->write_backlog_size;
+
+	for (uint8_t i = 0; i < data->read_buffer_sizes_length; ++i) {
+		tfcan.rx_buffer_size[i] = ABS(data->read_buffer_sizes_data[i]);
+		tfcan.rx_buffer_type[i] = data->read_buffer_sizes_data[i] >= 0 ? TFCAN_BUFFER_TYPE_DATA : TFCAN_BUFFER_TYPE_REMOTE;
+	}
+
+	for (uint8_t i = data->read_buffer_sizes_length; i < TFCAN_BUFFER_SIZE; ++i) {
+		tfcan.rx_buffer_size[i] = 0;
+		tfcan.rx_buffer_type[i] = TFCAN_BUFFER_TYPE_DATA;
+	}
+
+	tfcan.rx_backlog_size       = data->read_backlog_size;
 
 	return HANDLE_MESSAGE_RESPONSE_EMPTY;
 }
 
 BootloaderHandleMessageResponse get_queue_configuration_low_level(const GetQueueConfigurationLowLevel *data, GetQueueConfigurationLowLevel_Response *response) {
-	response->header.length = sizeof(GetQueueConfigurationLowLevel_Response);
+	response->header.length        = sizeof(GetQueueConfigurationLowLevel_Response);
+	response->write_buffer_size    = tfcan.tx_buffer_size;
+	response->write_buffer_timeout = tfcan.tx_buffer_timeout;
+	response->write_backlog_size   = tfcan.tx_backlog_size;
+
+	for (uint8_t i = 0; i < TFCAN_BUFFER_SIZE; ++i) {
+		response->read_buffer_sizes_data[i] = (int8_t)tfcan.rx_buffer_size[i] * (tfcan.rx_buffer_type[i] == TFCAN_BUFFER_TYPE_DATA ? 1 : -1);
+
+		if (tfcan.rx_buffer_size[i] != 0) {
+			response->read_buffer_sizes_length = i + 1;
+		}
+	}
+
+	response->read_backlog_size    = tfcan.rx_backlog_size;
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
 
 BootloaderHandleMessageResponse set_read_filter_configuration(const SetReadFilterConfiguration *data) {
+	if (data->buffer_index >= TFCAN_BUFFER_SIZE ||
+	    data->filter_mode > CAN_V2_FILTER_MODE_MATCH_STANDARD_AND_EXTENDED) {
+		return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+	}
+
+	if (data->filter_mode == CAN_V2_FILTER_MODE_MATCH_STANDARD_ONLY) {
+		if (data->filter_mask >= (1u << 11) || data->filter_identifier >= (1u << 11)) {
+			return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+		}
+	} else if (data->filter_mode >= CAN_V2_FILTER_MODE_MATCH_EXTENDED_ONLY) {
+		if (data->filter_mask >= (1u << 29) || data->filter_identifier >= (1u << 29)) {
+			return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+		}
+	}
+
+	tfcan.reconfigure_rx_filters                      |= 1u << data->buffer_index;
+	tfcan.rx_filter_mode[data->buffer_index]           = data->filter_mode;
+
+	if (data->filter_mode != CAN_V2_FILTER_MODE_ACCEPT_ALL) {
+		tfcan.rx_filter_mask[data->buffer_index]       = data->filter_mask;
+		tfcan.rx_filter_identifier[data->buffer_index] = data->filter_identifier;
+	} else {
+		tfcan.rx_filter_mask[data->buffer_index]       = 0;
+		tfcan.rx_filter_identifier[data->buffer_index] = 0;
+	}
 
 	return HANDLE_MESSAGE_RESPONSE_EMPTY;
 }
 
 BootloaderHandleMessageResponse get_read_filter_configuration(const GetReadFilterConfiguration *data, GetReadFilterConfiguration_Response *response) {
-	response->header.length = sizeof(GetReadFilterConfiguration_Response);
+	if (data->buffer_index >= TFCAN_BUFFER_SIZE) {
+		return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+	}
+
+	response->header.length     = sizeof(GetReadFilterConfiguration_Response);
+	response->filter_mode       = tfcan.rx_filter_mode[data->buffer_index];
+	response->filter_mask       = tfcan.rx_filter_mask[data->buffer_index];
+	response->filter_identifier = tfcan.rx_filter_identifier[data->buffer_index];
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }

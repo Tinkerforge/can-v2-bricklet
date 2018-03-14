@@ -20,13 +20,13 @@ except ValueError:
 
 ReadFrameLowLevel = namedtuple('ReadFrameLowLevel', ['success', 'frame_type', 'identifier', 'data_length', 'data_data'])
 GetTransceiverConfiguration = namedtuple('TransceiverConfiguration', ['baud_rate', 'transceiver_mode'])
-GetQueueConfigurationLowLevel = namedtuple('QueueConfigurationLowLevel', ['write_buffer_size', 'write_buffer_timeout', 'write_backlog_size', 'read_buffer_size_length', 'read_buffer_size_data', 'read_backlog_size'])
-GetReadFilterConfiguration = namedtuple('ReadFilterConfiguration', ['filter_mode', 'filter_mask', 'filter_match'])
+GetQueueConfigurationLowLevel = namedtuple('QueueConfigurationLowLevel', ['write_buffer_size', 'write_buffer_timeout', 'write_backlog_size', 'read_buffer_sizes_length', 'read_buffer_sizes_data', 'read_backlog_size'])
+GetReadFilterConfiguration = namedtuple('ReadFilterConfiguration', ['filter_mode', 'filter_mask', 'filter_identifier'])
 GetErrorLog = namedtuple('ErrorLog', ['write_error_level', 'read_error_level', 'transceiver_disabled', 'write_timeout_count', 'read_register_overflow_count', 'read_buffer_overflow_count'])
 GetSPITFPErrorCount = namedtuple('SPITFPErrorCount', ['error_count_ack_checksum', 'error_count_message_checksum', 'error_count_frame', 'error_count_overflow'])
 GetIdentity = namedtuple('Identity', ['uid', 'connected_uid', 'position', 'hardware_version', 'firmware_version', 'device_identifier'])
 ReadFrame = namedtuple('ReadFrame', ['success', 'frame_type', 'identifier', 'data'])
-GetQueueConfiguration = namedtuple('QueueConfiguration', ['write_buffer_size', 'write_buffer_timeout', 'write_backlog_size', 'read_buffer_size', 'read_backlog_size'])
+GetQueueConfiguration = namedtuple('QueueConfiguration', ['write_buffer_size', 'write_buffer_timeout', 'write_backlog_size', 'read_buffer_sizes', 'read_backlog_size'])
 
 class BrickletCANV2(Device):
     """
@@ -73,9 +73,9 @@ class BrickletCANV2(Device):
     TRANSCEIVER_MODE_LOOPBACK = 1
     TRANSCEIVER_MODE_READ_ONLY = 2
     FILTER_MODE_ACCEPT_ALL = 0
-    FILTER_MODE_MATCH_STANDARD_AND_EXTENDED = 1
-    FILTER_MODE_MATCH_STANDARD_ONLY = 2
-    FILTER_MODE_MATCH_EXTENDED_ONLY = 3
+    FILTER_MODE_MATCH_STANDARD_ONLY = 1
+    FILTER_MODE_MATCH_EXTENDED_ONLY = 2
+    FILTER_MODE_MATCH_STANDARD_AND_EXTENDED = 3
     BOOTLOADER_MODE_BOOTLOADER = 0
     BOOTLOADER_MODE_FIRMWARE = 1
     BOOTLOADER_MODE_BOOTLOADER_WAIT_FOR_REBOOT = 2
@@ -249,7 +249,7 @@ class BrickletCANV2(Device):
         """
         return GetTransceiverConfiguration(*self.ipcon.send_request(self, BrickletCANV2.FUNCTION_GET_TRANSCEIVER_CONFIGURATION, (), '', 'I B'))
 
-    def set_queue_configuration_low_level(self, write_buffer_size, write_buffer_timeout, write_backlog_size, read_buffer_size_length, read_buffer_size_data, read_backlog_size):
+    def set_queue_configuration_low_level(self, write_buffer_size, write_buffer_timeout, write_backlog_size, read_buffer_sizes_length, read_buffer_sizes_data, read_backlog_size):
         """
         FIXME
 
@@ -283,11 +283,11 @@ class BrickletCANV2(Device):
         write_buffer_size = int(write_buffer_size)
         write_buffer_timeout = int(write_buffer_timeout)
         write_backlog_size = int(write_backlog_size)
-        read_buffer_size_length = int(read_buffer_size_length)
-        read_buffer_size_data = list(map(int, read_buffer_size_data))
+        read_buffer_sizes_length = int(read_buffer_sizes_length)
+        read_buffer_sizes_data = list(map(int, read_buffer_sizes_data))
         read_backlog_size = int(read_backlog_size)
 
-        self.ipcon.send_request(self, BrickletCANV2.FUNCTION_SET_QUEUE_CONFIGURATION_LOW_LEVEL, (write_buffer_size, write_buffer_timeout, write_backlog_size, read_buffer_size_length, read_buffer_size_data, read_backlog_size), 'B i H B 32b H', '')
+        self.ipcon.send_request(self, BrickletCANV2.FUNCTION_SET_QUEUE_CONFIGURATION_LOW_LEVEL, (write_buffer_size, write_buffer_timeout, write_backlog_size, read_buffer_sizes_length, read_buffer_sizes_data, read_backlog_size), 'B i H B 32b H', '')
 
     def get_queue_configuration_low_level(self):
         """
@@ -295,7 +295,7 @@ class BrickletCANV2(Device):
         """
         return GetQueueConfigurationLowLevel(*self.ipcon.send_request(self, BrickletCANV2.FUNCTION_GET_QUEUE_CONFIGURATION_LOW_LEVEL, (), '', 'B i H B 32b H'))
 
-    def set_read_filter_configuration(self, buffer_index, filter_mode, filter_mask, filter_match):
+    def set_read_filter_configuration(self, buffer_index, filter_mode, filter_mask, filter_identifier):
         """
         FIXME
 
@@ -357,9 +357,9 @@ class BrickletCANV2(Device):
         buffer_index = int(buffer_index)
         filter_mode = int(filter_mode)
         filter_mask = int(filter_mask)
-        filter_match = int(filter_match)
+        filter_identifier = int(filter_identifier)
 
-        self.ipcon.send_request(self, BrickletCANV2.FUNCTION_SET_READ_FILTER_CONFIGURATION, (buffer_index, filter_mode, filter_mask, filter_match), 'B B I I', '')
+        self.ipcon.send_request(self, BrickletCANV2.FUNCTION_SET_READ_FILTER_CONFIGURATION, (buffer_index, filter_mode, filter_mask, filter_identifier), 'B B I I', '')
 
     def get_read_filter_configuration(self, buffer_index):
         """
@@ -619,7 +619,7 @@ class BrickletCANV2(Device):
 
         return ReadFrame(ret.success, ret.frame_type, ret.identifier, ret.data_data[:ret.data_length])
 
-    def set_queue_configuration(self, write_buffer_size, write_buffer_timeout, write_backlog_size, read_buffer_size, read_backlog_size):
+    def set_queue_configuration(self, write_buffer_size, write_buffer_timeout, write_backlog_size, read_buffer_sizes, read_backlog_size):
         """
         FIXME
 
@@ -653,19 +653,19 @@ class BrickletCANV2(Device):
         write_buffer_size = int(write_buffer_size)
         write_buffer_timeout = int(write_buffer_timeout)
         write_backlog_size = int(write_backlog_size)
-        read_buffer_size = list(map(int, read_buffer_size))
+        read_buffer_sizes = list(map(int, read_buffer_sizes))
         read_backlog_size = int(read_backlog_size)
 
-        read_buffer_size_length = len(read_buffer_size)
-        read_buffer_size_data = list(read_buffer_size) # make a copy so we can potentially extend it
+        read_buffer_sizes_length = len(read_buffer_sizes)
+        read_buffer_sizes_data = list(read_buffer_sizes) # make a copy so we can potentially extend it
 
-        if read_buffer_size_length > 32:
-            raise Error(Error.INVALID_PARAMETER, 'Read Buffer Size can be at most 32 items long')
+        if read_buffer_sizes_length > 32:
+            raise Error(Error.INVALID_PARAMETER, 'Read Buffer Sizes can be at most 32 items long')
 
-        if read_buffer_size_length < 32:
-            read_buffer_size_data += [0] * (32 - read_buffer_size_length)
+        if read_buffer_sizes_length < 32:
+            read_buffer_sizes_data += [0] * (32 - read_buffer_sizes_length)
 
-        return self.set_queue_configuration_low_level(write_buffer_size, write_buffer_timeout, write_backlog_size, read_buffer_size_length, read_buffer_size_data, read_backlog_size)
+        return self.set_queue_configuration_low_level(write_buffer_size, write_buffer_timeout, write_backlog_size, read_buffer_sizes_length, read_buffer_sizes_data, read_backlog_size)
 
     def get_queue_configuration(self):
         """
@@ -673,7 +673,7 @@ class BrickletCANV2(Device):
         """
         ret = self.get_queue_configuration_low_level()
 
-        return GetQueueConfiguration(ret.write_buffer_size, ret.write_buffer_timeout, ret.write_backlog_size, ret.read_buffer_size_data[:ret.read_buffer_size_length], ret.read_backlog_size)
+        return GetQueueConfiguration(ret.write_buffer_size, ret.write_buffer_timeout, ret.write_backlog_size, ret.read_buffer_sizes_data[:ret.read_buffer_sizes_length], ret.read_backlog_size)
 
     def register_callback(self, callback_id, function):
         """
