@@ -27,6 +27,8 @@
 
 #include "configs/config_tfcan.h"
 
+#include "bricklib2/utility/led_flicker.h"
+
 #include "xmc_can.h"
 
 #include "tfcan_mo.h"
@@ -96,6 +98,9 @@ typedef struct {
 	TFCAN_FilterMode rx_filter_mode[TFCAN_BUFFER_SIZE]; // config
 	uint32_t rx_filter_mask[TFCAN_BUFFER_SIZE]; // config
 	uint32_t rx_filter_identifier[TFCAN_BUFFER_SIZE]; // config
+
+	LEDFlickerState com_led_state;
+	LEDFlickerState error_led_state;
 
 #ifdef TFCAN_BUFFER_DEBUG
 	uint32_t last_buffer_debug;

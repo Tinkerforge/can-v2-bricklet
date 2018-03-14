@@ -48,6 +48,16 @@ void communication_init(void);
 #define CAN_V2_FILTER_MODE_MATCH_EXTENDED_ONLY 2
 #define CAN_V2_FILTER_MODE_MATCH_STANDARD_AND_EXTENDED 3
 
+#define CAN_V2_COMMUNICATION_LED_CONFIG_OFF 0
+#define CAN_V2_COMMUNICATION_LED_CONFIG_ON 1
+#define CAN_V2_COMMUNICATION_LED_CONFIG_SHOW_HEARTBEAT 2
+#define CAN_V2_COMMUNICATION_LED_CONFIG_SHOW_COMMUNICATION 3
+
+#define CAN_V2_ERROR_LED_CONFIG_OFF 0
+#define CAN_V2_ERROR_LED_CONFIG_ON 1
+#define CAN_V2_ERROR_LED_CONFIG_SHOW_HEARTBEAT 2
+#define CAN_V2_ERROR_LED_CONFIG_SHOW_ERROR 3
+
 #define CAN_V2_BOOTLOADER_MODE_BOOTLOADER 0
 #define CAN_V2_BOOTLOADER_MODE_FIRMWARE 1
 #define CAN_V2_BOOTLOADER_MODE_BOOTLOADER_WAIT_FOR_REBOOT 2
@@ -78,8 +88,12 @@ void communication_init(void);
 #define FID_SET_READ_FILTER_CONFIGURATION 9
 #define FID_GET_READ_FILTER_CONFIGURATION 10
 #define FID_GET_ERROR_LOG 11
+#define FID_SET_COMMUNICATION_LED_CONFIG 12
+#define FID_GET_COMMUNICATION_LED_CONFIG 13
+#define FID_SET_ERROR_LED_CONFIG 14
+#define FID_GET_ERROR_LED_CONFIG 15
 
-#define FID_CALLBACK_FRAME_READ_LOW_LEVEL 12
+#define FID_CALLBACK_FRAME_READ_LOW_LEVEL 16
 
 typedef struct {
 	TFPMessageHeader header;
@@ -197,6 +211,34 @@ typedef struct {
 
 typedef struct {
 	TFPMessageHeader header;
+	uint8_t config;
+} __attribute__((__packed__)) SetCommunicationLEDConfig;
+
+typedef struct {
+	TFPMessageHeader header;
+} __attribute__((__packed__)) GetCommunicationLEDConfig;
+
+typedef struct {
+	TFPMessageHeader header;
+	uint8_t config;
+} __attribute__((__packed__)) GetCommunicationLEDConfig_Response;
+
+typedef struct {
+	TFPMessageHeader header;
+	uint8_t config;
+} __attribute__((__packed__)) SetErrorLEDConfig;
+
+typedef struct {
+	TFPMessageHeader header;
+} __attribute__((__packed__)) GetErrorLEDConfig;
+
+typedef struct {
+	TFPMessageHeader header;
+	uint8_t config;
+} __attribute__((__packed__)) GetErrorLEDConfig_Response;
+
+typedef struct {
+	TFPMessageHeader header;
 	uint8_t frame_type;
 	uint32_t identifier;
 	uint8_t data_length;
@@ -216,6 +258,10 @@ BootloaderHandleMessageResponse get_queue_configuration_low_level(const GetQueue
 BootloaderHandleMessageResponse set_read_filter_configuration(const SetReadFilterConfiguration *data);
 BootloaderHandleMessageResponse get_read_filter_configuration(const GetReadFilterConfiguration *data, GetReadFilterConfiguration_Response *response);
 BootloaderHandleMessageResponse get_error_log(const GetErrorLog *data, GetErrorLog_Response *response);
+BootloaderHandleMessageResponse set_communication_led_config(const SetCommunicationLEDConfig *data);
+BootloaderHandleMessageResponse get_communication_led_config(const GetCommunicationLEDConfig *data, GetCommunicationLEDConfig_Response *response);
+BootloaderHandleMessageResponse set_error_led_config(const SetErrorLEDConfig *data);
+BootloaderHandleMessageResponse get_error_led_config(const GetErrorLEDConfig *data, GetErrorLEDConfig_Response *response);
 
 // Callbacks
 bool handle_frame_read_low_level_callback(void);

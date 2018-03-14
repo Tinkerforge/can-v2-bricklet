@@ -45,6 +45,10 @@ BootloaderHandleMessageResponse handle_message(const void *message, void *respon
 		case FID_SET_READ_FILTER_CONFIGURATION: return set_read_filter_configuration(message);
 		case FID_GET_READ_FILTER_CONFIGURATION: return get_read_filter_configuration(message, response);
 		case FID_GET_ERROR_LOG: return get_error_log(message, response);
+		case FID_SET_COMMUNICATION_LED_CONFIG: return set_communication_led_config(message);
+		case FID_GET_COMMUNICATION_LED_CONFIG: return get_communication_led_config(message, response);
+		case FID_SET_ERROR_LED_CONFIG: return set_error_led_config(message);
+		case FID_GET_ERROR_LED_CONFIG: return get_error_led_config(message, response);
 		default: return HANDLE_MESSAGE_RESPONSE_NOT_SUPPORTED;
 	}
 }
@@ -244,6 +248,62 @@ BootloaderHandleMessageResponse get_read_filter_configuration(const GetReadFilte
 
 BootloaderHandleMessageResponse get_error_log(const GetErrorLog *data, GetErrorLog_Response *response) {
 	response->header.length = sizeof(GetErrorLog_Response);
+
+	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
+}
+
+BootloaderHandleMessageResponse set_communication_led_config(const SetCommunicationLEDConfig *data) {
+	if (data->config > CAN_V2_COMMUNICATION_LED_CONFIG_SHOW_COMMUNICATION) {
+		return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+	}
+
+	tfcan.com_led_state.config = data->config;
+
+	if (tfcan.com_led_state.config == LED_FLICKER_CONFIG_OFF) {
+		XMC_GPIO_SetOutputHigh(TFCAN_COM_LED_PIN);
+	} else {
+		XMC_GPIO_SetOutputLow(TFCAN_COM_LED_PIN);
+	}
+
+	return HANDLE_MESSAGE_RESPONSE_EMPTY;
+}
+
+BootloaderHandleMessageResponse get_communication_led_config(const GetCommunicationLEDConfig *data, GetCommunicationLEDConfig_Response *response) {
+	response->header.length = sizeof(GetCommunicationLEDConfig_Response);
+	response->config        = tfcan.com_led_state.config;
+
+	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
+}
+
+BootloaderHandleMessageResponse set_error_led_config(const SetErrorLEDConfig *data) {
+	if (data->config > CAN_V2_ERROR_LED_CONFIG_SHOW_ERROR) {
+		return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+	}
+
+	if (data->config == CAN_V2_ERROR_LED_CONFIG_SHOW_ERROR) {
+		tfcan.error_led_state.config = LED_FLICKER_CONFIG_EXTERNAL;
+	} else {
+		tfcan.error_led_state.config = data->config;
+	}
+
+	if (tfcan.error_led_state.config == LED_FLICKER_CONFIG_OFF ||
+	    tfcan.error_led_state.config == LED_FLICKER_CONFIG_EXTERNAL) {
+		XMC_GPIO_SetOutputHigh(TFCAN_ERROR_LED_PIN);
+	} else {
+		XMC_GPIO_SetOutputLow(TFCAN_ERROR_LED_PIN);
+	}
+
+	return HANDLE_MESSAGE_RESPONSE_EMPTY;
+}
+
+BootloaderHandleMessageResponse get_error_led_config(const GetErrorLEDConfig *data, GetErrorLEDConfig_Response *response) {
+	response->header.length = sizeof(GetErrorLEDConfig_Response);
+
+	if (tfcan.error_led_state.config == LED_FLICKER_CONFIG_EXTERNAL) {
+		response->config = CAN_V2_ERROR_LED_CONFIG_SHOW_ERROR;
+	} else {
+		response->config = tfcan.error_led_state.config;
+	}
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }

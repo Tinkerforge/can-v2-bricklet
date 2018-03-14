@@ -112,14 +112,29 @@ void tfcan_init(void) {
 	tfcan_reconfigure_transceiver();
 	tfcan_reconfigure_queues();
 
-	// configure extra LEDs
-	XMC_GPIO_CONFIG_t led_pin_config = {
+	// configure communication LED
+	XMC_GPIO_CONFIG_t com_led_pin_config = {
+		.mode         = XMC_GPIO_MODE_OUTPUT_PUSH_PULL,
+		.output_level = XMC_GPIO_OUTPUT_LEVEL_LOW
+	};
+
+	XMC_GPIO_Init(TFCAN_COM_LED_PIN, &com_led_pin_config);
+
+	tfcan.com_led_state.config = LED_FLICKER_CONFIG_STATUS;
+	tfcan.com_led_state.counter = 0;
+	tfcan.com_led_state.start = 0;
+
+	// configure error LED
+	XMC_GPIO_CONFIG_t error_led_pin_config = {
 		.mode         = XMC_GPIO_MODE_OUTPUT_PUSH_PULL,
 		.output_level = XMC_GPIO_OUTPUT_LEVEL_HIGH
 	};
 
-	XMC_GPIO_Init(TFCAN_COM_LED_PIN, &led_pin_config);
-	XMC_GPIO_Init(TFCAN_ERROR_LED_PIN, &led_pin_config);
+	XMC_GPIO_Init(TFCAN_ERROR_LED_PIN, &error_led_pin_config);
+
+	tfcan.error_led_state.config  = LED_FLICKER_CONFIG_EXTERNAL;
+	tfcan.error_led_state.counter = 0;
+	tfcan.error_led_state.start = 0;
 }
 
 void tfcan_tick(void) {
@@ -202,6 +217,8 @@ void tfcan_tick(void) {
 
 		tfcan.tx_buffer_mo_timestamp[tfcan.tx_buffer_mo_next_index] = system_timer_get_ms();
 		tfcan.tx_buffer_mo_next_index = (tfcan.tx_buffer_mo_next_index + 1) % tfcan.tx_buffer_size;
+
+		led_flicker_increase_counter(&tfcan.com_led_state);
 	}
 
 	// collect RX MO frame counter values
@@ -310,7 +327,12 @@ void tfcan_tick(void) {
 
 		tfcan.rx_buffer_mo_frame_counter[k][rx_buffer_mo_next_index] = -1;
 		tfcan.rx_buffer_mo_next_index[k] = (rx_buffer_mo_next_index + 1) % tfcan.rx_buffer_size[k];
+
+		led_flicker_increase_counter(&tfcan.com_led_state);
 	}
+
+	led_flicker_tick(&tfcan.com_led_state, system_timer_get_ms(), TFCAN_COM_LED_PIN);
+	led_flicker_tick(&tfcan.error_led_state, system_timer_get_ms(), TFCAN_ERROR_LED_PIN);
 }
 
 void tfcan_set_config_mode(const bool enable) {
