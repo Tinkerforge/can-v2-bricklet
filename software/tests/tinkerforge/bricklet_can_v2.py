@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #############################################################
-# This file was automatically generated on 2018-03-13.      #
+# This file was automatically generated on 2018-03-14.      #
 #                                                           #
 # Python Bindings Version 2.1.16                            #
 #                                                           #
@@ -20,12 +20,13 @@ except ValueError:
 
 ReadFrameLowLevel = namedtuple('ReadFrameLowLevel', ['success', 'frame_type', 'identifier', 'data_length', 'data_data'])
 GetTransceiverConfiguration = namedtuple('TransceiverConfiguration', ['baud_rate', 'transceiver_mode'])
-GetWriteQueueConfiguration = namedtuple('WriteQueueConfiguration', ['buffer_size', 'backlog_size'])
-GetReadQueueBufferConfiguration = namedtuple('ReadQueueBufferConfiguration', ['buffer_type', 'buffer_size', 'filter_mode', 'filter_mask', 'filter_match'])
+GetQueueConfigurationLowLevel = namedtuple('QueueConfigurationLowLevel', ['write_buffer_size', 'write_buffer_timeout', 'write_backlog_size', 'read_buffer_size_length', 'read_buffer_size_data', 'read_backlog_size'])
+GetReadFilterConfiguration = namedtuple('ReadFilterConfiguration', ['filter_mode', 'filter_mask', 'filter_match'])
 GetErrorLog = namedtuple('ErrorLog', ['write_error_level', 'read_error_level', 'transceiver_disabled', 'write_timeout_count', 'read_register_overflow_count', 'read_buffer_overflow_count'])
 GetSPITFPErrorCount = namedtuple('SPITFPErrorCount', ['error_count_ack_checksum', 'error_count_message_checksum', 'error_count_frame', 'error_count_overflow'])
 GetIdentity = namedtuple('Identity', ['uid', 'connected_uid', 'position', 'hardware_version', 'firmware_version', 'device_identifier'])
 ReadFrame = namedtuple('ReadFrame', ['success', 'frame_type', 'identifier', 'data'])
+GetQueueConfiguration = namedtuple('QueueConfiguration', ['write_buffer_size', 'write_buffer_timeout', 'write_backlog_size', 'read_buffer_size', 'read_backlog_size'])
 
 class BrickletCANV2(Device):
     """
@@ -36,9 +37,9 @@ class BrickletCANV2(Device):
     DEVICE_DISPLAY_NAME = 'CAN Bricklet 2.0'
     DEVICE_URL_PART = 'can_v2' # internal
 
-    CALLBACK_FRAME_READ_LOW_LEVEL = 14
+    CALLBACK_FRAME_READ_LOW_LEVEL = 12
 
-    CALLBACK_FRAME_READ = -14
+    CALLBACK_FRAME_READ = -12
 
     FUNCTION_WRITE_FRAME_LOW_LEVEL = 1
     FUNCTION_READ_FRAME_LOW_LEVEL = 2
@@ -46,13 +47,11 @@ class BrickletCANV2(Device):
     FUNCTION_GET_FRAME_READ_CALLBACK_CONFIGURATION = 4
     FUNCTION_SET_TRANSCEIVER_CONFIGURATION = 5
     FUNCTION_GET_TRANSCEIVER_CONFIGURATION = 6
-    FUNCTION_SET_WRITE_QUEUE_CONFIGURATION = 7
-    FUNCTION_GET_WRITE_QUEUE_CONFIGURATION = 8
-    FUNCTION_SET_READ_QUEUE_BUFFER_CONFIGURATION = 9
-    FUNCTION_GET_READ_QUEUE_BUFFER_CONFIGURATION = 10
-    FUNCTION_SET_READ_QUEUE_BACKLOG_CONFIGURATION = 11
-    FUNCTION_GET_READ_QUEUE_BACKLOG_CONFIGURATION = 12
-    FUNCTION_GET_ERROR_LOG = 13
+    FUNCTION_SET_QUEUE_CONFIGURATION_LOW_LEVEL = 7
+    FUNCTION_GET_QUEUE_CONFIGURATION_LOW_LEVEL = 8
+    FUNCTION_SET_READ_FILTER_CONFIGURATION = 9
+    FUNCTION_GET_READ_FILTER_CONFIGURATION = 10
+    FUNCTION_GET_ERROR_LOG = 11
     FUNCTION_GET_SPITFP_ERROR_COUNT = 234
     FUNCTION_SET_BOOTLOADER_MODE = 235
     FUNCTION_GET_BOOTLOADER_MODE = 236
@@ -73,8 +72,6 @@ class BrickletCANV2(Device):
     TRANSCEIVER_MODE_NORMAL = 0
     TRANSCEIVER_MODE_LOOPBACK = 1
     TRANSCEIVER_MODE_READ_ONLY = 2
-    BUFFER_TYPE_DATA = 0
-    BUFFER_TYPE_REMOTE = 1
     FILTER_MODE_ACCEPT_ALL = 0
     FILTER_MODE_MATCH_STANDARD_AND_EXTENDED = 1
     FILTER_MODE_MATCH_STANDARD_ONLY = 2
@@ -110,12 +107,10 @@ class BrickletCANV2(Device):
         self.response_expected[BrickletCANV2.FUNCTION_GET_FRAME_READ_CALLBACK_CONFIGURATION] = BrickletCANV2.RESPONSE_EXPECTED_ALWAYS_TRUE
         self.response_expected[BrickletCANV2.FUNCTION_SET_TRANSCEIVER_CONFIGURATION] = BrickletCANV2.RESPONSE_EXPECTED_FALSE
         self.response_expected[BrickletCANV2.FUNCTION_GET_TRANSCEIVER_CONFIGURATION] = BrickletCANV2.RESPONSE_EXPECTED_ALWAYS_TRUE
-        self.response_expected[BrickletCANV2.FUNCTION_SET_WRITE_QUEUE_CONFIGURATION] = BrickletCANV2.RESPONSE_EXPECTED_FALSE
-        self.response_expected[BrickletCANV2.FUNCTION_GET_WRITE_QUEUE_CONFIGURATION] = BrickletCANV2.RESPONSE_EXPECTED_ALWAYS_TRUE
-        self.response_expected[BrickletCANV2.FUNCTION_SET_READ_QUEUE_BUFFER_CONFIGURATION] = BrickletCANV2.RESPONSE_EXPECTED_FALSE
-        self.response_expected[BrickletCANV2.FUNCTION_GET_READ_QUEUE_BUFFER_CONFIGURATION] = BrickletCANV2.RESPONSE_EXPECTED_ALWAYS_TRUE
-        self.response_expected[BrickletCANV2.FUNCTION_SET_READ_QUEUE_BACKLOG_CONFIGURATION] = BrickletCANV2.RESPONSE_EXPECTED_FALSE
-        self.response_expected[BrickletCANV2.FUNCTION_GET_READ_QUEUE_BACKLOG_CONFIGURATION] = BrickletCANV2.RESPONSE_EXPECTED_ALWAYS_TRUE
+        self.response_expected[BrickletCANV2.FUNCTION_SET_QUEUE_CONFIGURATION_LOW_LEVEL] = BrickletCANV2.RESPONSE_EXPECTED_TRUE
+        self.response_expected[BrickletCANV2.FUNCTION_GET_QUEUE_CONFIGURATION_LOW_LEVEL] = BrickletCANV2.RESPONSE_EXPECTED_ALWAYS_TRUE
+        self.response_expected[BrickletCANV2.FUNCTION_SET_READ_FILTER_CONFIGURATION] = BrickletCANV2.RESPONSE_EXPECTED_FALSE
+        self.response_expected[BrickletCANV2.FUNCTION_GET_READ_FILTER_CONFIGURATION] = BrickletCANV2.RESPONSE_EXPECTED_ALWAYS_TRUE
         self.response_expected[BrickletCANV2.FUNCTION_GET_ERROR_LOG] = BrickletCANV2.RESPONSE_EXPECTED_ALWAYS_TRUE
         self.response_expected[BrickletCANV2.FUNCTION_GET_SPITFP_ERROR_COUNT] = BrickletCANV2.RESPONSE_EXPECTED_ALWAYS_TRUE
         self.response_expected[BrickletCANV2.FUNCTION_SET_BOOTLOADER_MODE] = BrickletCANV2.RESPONSE_EXPECTED_ALWAYS_TRUE
@@ -254,7 +249,7 @@ class BrickletCANV2(Device):
         """
         return GetTransceiverConfiguration(*self.ipcon.send_request(self, BrickletCANV2.FUNCTION_GET_TRANSCEIVER_CONFIGURATION, (), '', 'I B'))
 
-    def set_write_queue_configuration(self, buffer_size, buffer_timeout, backlog_size):
+    def set_queue_configuration_low_level(self, write_buffer_size, write_buffer_timeout, write_backlog_size, read_buffer_size_length, read_buffer_size_data, read_backlog_size):
         """
         FIXME
 
@@ -285,19 +280,22 @@ class BrickletCANV2(Device):
 
         The default is: 125 kbit/s, normal transceiver mode and infinite write timeout.
         """
-        buffer_size = int(buffer_size)
-        buffer_timeout = int(buffer_timeout)
-        backlog_size = int(backlog_size)
+        write_buffer_size = int(write_buffer_size)
+        write_buffer_timeout = int(write_buffer_timeout)
+        write_backlog_size = int(write_backlog_size)
+        read_buffer_size_length = int(read_buffer_size_length)
+        read_buffer_size_data = list(map(int, read_buffer_size_data))
+        read_backlog_size = int(read_backlog_size)
 
-        self.ipcon.send_request(self, BrickletCANV2.FUNCTION_SET_WRITE_QUEUE_CONFIGURATION, (buffer_size, buffer_timeout, backlog_size), 'B i H', '')
+        self.ipcon.send_request(self, BrickletCANV2.FUNCTION_SET_QUEUE_CONFIGURATION_LOW_LEVEL, (write_buffer_size, write_buffer_timeout, write_backlog_size, read_buffer_size_length, read_buffer_size_data, read_backlog_size), 'B i H B 32b H', '')
 
-    def get_write_queue_configuration(self):
+    def get_queue_configuration_low_level(self):
         """
-        Returns the write queue configuration as set by :func:`Set Write Queue Configuration`.
+        Returns the queue configuration as set by :func:`Set Queue Configuration`.
         """
-        return GetWriteQueueConfiguration(*self.ipcon.send_request(self, BrickletCANV2.FUNCTION_GET_WRITE_QUEUE_CONFIGURATION, (), '', 'B H'))
+        return GetQueueConfigurationLowLevel(*self.ipcon.send_request(self, BrickletCANV2.FUNCTION_GET_QUEUE_CONFIGURATION_LOW_LEVEL, (), '', 'B i H B 32b H'))
 
-    def set_read_queue_buffer_configuration(self, buffer_index, buffer_type, buffer_size, filter_mode, filter_mask, filter_match):
+    def set_read_filter_configuration(self, buffer_index, filter_mode, filter_mask, filter_match):
         """
         FIXME
 
@@ -357,62 +355,19 @@ class BrickletCANV2(Device):
         The default mode is accept-all.
         """
         buffer_index = int(buffer_index)
-        buffer_type = int(buffer_type)
-        buffer_size = int(buffer_size)
         filter_mode = int(filter_mode)
         filter_mask = int(filter_mask)
         filter_match = int(filter_match)
 
-        self.ipcon.send_request(self, BrickletCANV2.FUNCTION_SET_READ_QUEUE_BUFFER_CONFIGURATION, (buffer_index, buffer_type, buffer_size, filter_mode, filter_mask, filter_match), 'B B B B I I', '')
+        self.ipcon.send_request(self, BrickletCANV2.FUNCTION_SET_READ_FILTER_CONFIGURATION, (buffer_index, filter_mode, filter_mask, filter_match), 'B B I I', '')
 
-    def get_read_queue_buffer_configuration(self, buffer_index):
+    def get_read_filter_configuration(self, buffer_index):
         """
-        Returns the read queue buffer configuration as set by :func:`Set Read Queue Buffer Configuration`.
+        Returns the read filter configuration as set by :func:`Set Read Filter Configuration`.
         """
         buffer_index = int(buffer_index)
 
-        return GetReadQueueBufferConfiguration(*self.ipcon.send_request(self, BrickletCANV2.FUNCTION_GET_READ_QUEUE_BUFFER_CONFIGURATION, (buffer_index,), 'B', 'B B B I I'))
-
-    def set_read_queue_backlog_configuration(self, backlog_size):
-        """
-        FIXME
-
-        Sets the transceiver configuration for the CAN bus communication.
-
-        The baud rate can be configured in bit/s between 10 and 1000 kbit/s.
-
-        The CAN transceiver has three different modes:
-
-        * Normal: Reads from and writes to the CAN bus and performs active bus
-          error detection and acknowledgement.
-        * Loopback: All reads and writes are performed internally. The transceiver
-          is disconnected from the actual CAN bus.
-        * Read-Only: Only reads from the CAN bus, but does neither active bus error
-          detection nor acknowledgement. Only the receiving part of the transceiver
-          is connected to the CAN bus.
-
-        The write timeout has three different modes that define how a failed frame
-        transmission should be handled:
-
-        * Single-Shot (< 0): Only one transmission attempt will be made. If the
-          transmission fails then the frame is discarded.
-        * Infinite (= 0): Infinite transmission attempts will be made. The frame will
-          never be discarded.
-        * Milliseconds (> 0): A limited number of transmission attempts will be made.
-          If the frame could not be transmitted successfully after the configured
-          number of milliseconds then the frame is discarded.
-
-        The default is: 125 kbit/s, normal transceiver mode and infinite write timeout.
-        """
-        backlog_size = int(backlog_size)
-
-        self.ipcon.send_request(self, BrickletCANV2.FUNCTION_SET_READ_QUEUE_BACKLOG_CONFIGURATION, (backlog_size,), 'H', '')
-
-    def get_read_queue_backlog_configuration(self):
-        """
-        Returns the read queue backlog configuration as set by :func:`Set Read Queue Backlog Configuration`.
-        """
-        return self.ipcon.send_request(self, BrickletCANV2.FUNCTION_GET_READ_QUEUE_BACKLOG_CONFIGURATION, (), '', 'H')
+        return GetReadFilterConfiguration(*self.ipcon.send_request(self, BrickletCANV2.FUNCTION_GET_READ_FILTER_CONFIGURATION, (buffer_index,), 'B', 'B I I'))
 
     def get_error_log(self):
         """
@@ -663,6 +618,62 @@ class BrickletCANV2(Device):
         ret = self.read_frame_low_level()
 
         return ReadFrame(ret.success, ret.frame_type, ret.identifier, ret.data_data[:ret.data_length])
+
+    def set_queue_configuration(self, write_buffer_size, write_buffer_timeout, write_backlog_size, read_buffer_size, read_backlog_size):
+        """
+        FIXME
+
+        Sets the transceiver configuration for the CAN bus communication.
+
+        The baud rate can be configured in bit/s between 10 and 1000 kbit/s.
+
+        The CAN transceiver has three different modes:
+
+        * Normal: Reads from and writes to the CAN bus and performs active bus
+          error detection and acknowledgement.
+        * Loopback: All reads and writes are performed internally. The transceiver
+          is disconnected from the actual CAN bus.
+        * Read-Only: Only reads from the CAN bus, but does neither active bus error
+          detection nor acknowledgement. Only the receiving part of the transceiver
+          is connected to the CAN bus.
+
+        The write timeout has three different modes that define how a failed frame
+        transmission should be handled:
+
+        * Single-Shot (< 0): Only one transmission attempt will be made. If the
+          transmission fails then the frame is discarded.
+        * Infinite (= 0): Infinite transmission attempts will be made. The frame will
+          never be discarded.
+        * Milliseconds (> 0): A limited number of transmission attempts will be made.
+          If the frame could not be transmitted successfully after the configured
+          number of milliseconds then the frame is discarded.
+
+        The default is: 125 kbit/s, normal transceiver mode and infinite write timeout.
+        """
+        write_buffer_size = int(write_buffer_size)
+        write_buffer_timeout = int(write_buffer_timeout)
+        write_backlog_size = int(write_backlog_size)
+        read_buffer_size = list(map(int, read_buffer_size))
+        read_backlog_size = int(read_backlog_size)
+
+        read_buffer_size_length = len(read_buffer_size)
+        read_buffer_size_data = list(read_buffer_size) # make a copy so we can potentially extend it
+
+        if read_buffer_size_length > 32:
+            raise Error(Error.INVALID_PARAMETER, 'Read Buffer Size can be at most 32 items long')
+
+        if read_buffer_size_length < 32:
+            read_buffer_size_data += [0] * (32 - read_buffer_size_length)
+
+        return self.set_queue_configuration_low_level(write_buffer_size, write_buffer_timeout, write_backlog_size, read_buffer_size_length, read_buffer_size_data, read_backlog_size)
+
+    def get_queue_configuration(self):
+        """
+        Returns the queue configuration as set by :func:`Set Queue Configuration`.
+        """
+        ret = self.get_queue_configuration_low_level()
+
+        return GetQueueConfiguration(ret.write_buffer_size, ret.write_buffer_timeout, ret.write_backlog_size, ret.read_buffer_size_data[:ret.read_buffer_size_length], ret.read_backlog_size)
 
     def register_callback(self, callback_id, function):
         """

@@ -39,12 +39,10 @@ BootloaderHandleMessageResponse handle_message(const void *message, void *respon
 		case FID_GET_FRAME_READ_CALLBACK_CONFIGURATION: return get_frame_read_callback_configuration(message, response);
 		case FID_SET_TRANSCEIVER_CONFIGURATION: return set_transceiver_configuration(message);
 		case FID_GET_TRANSCEIVER_CONFIGURATION: return get_transceiver_configuration(message, response);
-		case FID_SET_WRITE_QUEUE_CONFIGURATION: return set_write_queue_configuration(message);
-		case FID_GET_WRITE_QUEUE_CONFIGURATION: return get_write_queue_configuration(message, response);
-		case FID_SET_READ_QUEUE_BUFFER_CONFIGURATION: return set_read_queue_buffer_configuration(message);
-		case FID_GET_READ_QUEUE_BUFFER_CONFIGURATION: return get_read_queue_buffer_configuration(message, response);
-		case FID_SET_READ_QUEUE_BACKLOG_CONFIGURATION: return set_read_queue_backlog_configuration(message);
-		case FID_GET_READ_QUEUE_BACKLOG_CONFIGURATION: return get_read_queue_backlog_configuration(message, response);
+		case FID_SET_QUEUE_CONFIGURATION_LOW_LEVEL: return set_queue_configuration_low_level(message);
+		case FID_GET_QUEUE_CONFIGURATION_LOW_LEVEL: return get_queue_configuration_low_level(message, response);
+		case FID_SET_READ_FILTER_CONFIGURATION: return set_read_filter_configuration(message);
+		case FID_GET_READ_FILTER_CONFIGURATION: return get_read_filter_configuration(message, response);
 		case FID_GET_ERROR_LOG: return get_error_log(message, response);
 		default: return HANDLE_MESSAGE_RESPONSE_NOT_SUPPORTED;
 	}
@@ -141,35 +139,24 @@ BootloaderHandleMessageResponse get_transceiver_configuration(const GetTransceiv
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
 
-BootloaderHandleMessageResponse set_write_queue_configuration(const SetWriteQueueConfiguration *data) {
+BootloaderHandleMessageResponse set_queue_configuration_low_level(const SetQueueConfigurationLowLevel *data) {
 
 	return HANDLE_MESSAGE_RESPONSE_EMPTY;
 }
 
-BootloaderHandleMessageResponse get_write_queue_configuration(const GetWriteQueueConfiguration *data, GetWriteQueueConfiguration_Response *response) {
-	response->header.length = sizeof(GetWriteQueueConfiguration_Response);
+BootloaderHandleMessageResponse get_queue_configuration_low_level(const GetQueueConfigurationLowLevel *data, GetQueueConfigurationLowLevel_Response *response) {
+	response->header.length = sizeof(GetQueueConfigurationLowLevel_Response);
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
 
-BootloaderHandleMessageResponse set_read_queue_buffer_configuration(const SetReadQueueBufferConfiguration *data) {
+BootloaderHandleMessageResponse set_read_filter_configuration(const SetReadFilterConfiguration *data) {
 
 	return HANDLE_MESSAGE_RESPONSE_EMPTY;
 }
 
-BootloaderHandleMessageResponse get_read_queue_buffer_configuration(const GetReadQueueBufferConfiguration *data, GetReadQueueBufferConfiguration_Response *response) {
-	response->header.length = sizeof(GetReadQueueBufferConfiguration_Response);
-
-	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
-}
-
-BootloaderHandleMessageResponse set_read_queue_backlog_configuration(const SetReadQueueBacklogConfiguration *data) {
-
-	return HANDLE_MESSAGE_RESPONSE_EMPTY;
-}
-
-BootloaderHandleMessageResponse get_read_queue_backlog_configuration(const GetReadQueueBacklogConfiguration *data, GetReadQueueBacklogConfiguration_Response *response) {
-	response->header.length = sizeof(GetReadQueueBacklogConfiguration_Response);
+BootloaderHandleMessageResponse get_read_filter_configuration(const GetReadFilterConfiguration *data, GetReadFilterConfiguration_Response *response) {
+	response->header.length = sizeof(GetReadFilterConfiguration_Response);
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }

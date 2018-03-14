@@ -36,7 +36,6 @@ typedef enum {
 	TFCAN_MO_TYPE_INVALID
 } TFCAN_MOType;
 
-// must match Bricklet API BufferType enum
 typedef enum {
 	TFCAN_BUFFER_TYPE_DATA = 0,
 	TFCAN_BUFFER_TYPE_REMOTE
