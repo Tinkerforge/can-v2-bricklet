@@ -42,10 +42,10 @@ void tfcan_init(void) {
 	memset(&tfcan, 0, sizeof(TFCAN));
 
 	tfcan.reconfigure_transceiver = true;
-	tfcan.baud_rate_new = 125000;
+	tfcan.baud_rate = 125000; // config default
 	tfcan.sample_point = 8000;
 	tfcan.sync_jump_width = 1;
-	tfcan.transceiver_mode_new = TFCAN_TRANSCEIVER_MODE_NORMAL;
+	tfcan.transceiver_mode = TFCAN_TRANSCEIVER_MODE_NORMAL; // config default
 
 	tfcan.node[0] = CAN_NODE0;
 	tfcan.node[1] = CAN_NODE1;
@@ -297,11 +297,9 @@ void tfcan_reconfigure_transceiver(void) {
 		return;
 	}
 
-	tfcan_set_config_mode(true);
-
 	tfcan.reconfigure_transceiver = false;
-	tfcan.baud_rate = tfcan.baud_rate_new;
-	tfcan.transceiver_mode = tfcan.transceiver_mode_new;
+
+	tfcan_set_config_mode(true);
 
 	uint32_t best_div = 1;
 	uint32_t best_brp = 1;

@@ -126,23 +126,17 @@ BootloaderHandleMessageResponse set_transceiver_configuration(const SetTransceiv
 		return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
 	}
 
-	tfcan.baud_rate_new           = data->baud_rate;
-	tfcan.transceiver_mode_new    = data->transceiver_mode;
 	tfcan.reconfigure_transceiver = true;
+	tfcan.baud_rate               = data->baud_rate;
+	tfcan.transceiver_mode        = data->transceiver_mode;
 
 	return HANDLE_MESSAGE_RESPONSE_EMPTY;
 }
 
 BootloaderHandleMessageResponse get_transceiver_configuration(const GetTransceiverConfiguration *data, GetTransceiverConfiguration_Response *response) {
-	response->header.length = sizeof(GetTransceiverConfiguration_Response);
-
-	if (tfcan.reconfigure_transceiver) {
-		response->baud_rate        = tfcan.baud_rate_new;
-		response->transceiver_mode = tfcan.transceiver_mode_new;
-	} else {
-		response->baud_rate        = tfcan.baud_rate;
-		response->transceiver_mode = tfcan.transceiver_mode;
-	}
+	response->header.length    = sizeof(GetTransceiverConfiguration_Response);
+	response->baud_rate        = tfcan.baud_rate;
+	response->transceiver_mode = tfcan.transceiver_mode;
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }

@@ -49,12 +49,10 @@ typedef struct {
 
 typedef struct {
 	bool reconfigure_transceiver;
-	uint32_t baud_rate; // [10000..10000000] bps
-	uint32_t baud_rate_new;
+	uint32_t baud_rate; // config, [10000..10000000] bps
 	uint16_t sample_point; // [0..10000] 0.01 %
 	uint8_t sync_jump_width; // [1..4] // FIXME: bit-timing calculation assumes this to be 1
-	TFCAN_TransceiverMode transceiver_mode;
-	TFCAN_TransceiverMode transceiver_mode_new;
+	TFCAN_TransceiverMode transceiver_mode; // config
 
 	CAN_NODE_TypeDef *node[TFCAN_NODE_SIZE];
 	CAN_NODE_TypeDef *tx_node;
