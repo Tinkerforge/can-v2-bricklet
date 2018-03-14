@@ -316,13 +316,11 @@ void tfcan_tick(void) {
 void tfcan_set_config_mode(const bool enable) {
 	if (enable) {
 		for (uint8_t i = 0; i < TFCAN_NODE_SIZE; ++i) {
-			XMC_CAN_NODE_EnableConfigurationChange(tfcan.node[i]);
-			XMC_CAN_NODE_SetInitBit(tfcan.node[i]);
+			tfcan.node[i]->NCR |= (uint32_t)CAN_NODE_NCR_INIT_Msk | (uint32_t)CAN_NODE_NCR_CCE_Msk;
 		}
 	} else {
 		for (uint8_t i = 0; i < TFCAN_NODE_SIZE; ++i) {
-			XMC_CAN_NODE_DisableConfigurationChange(tfcan.node[i]);
-			XMC_CAN_NODE_ResetInitBit(tfcan.node[i]);
+			tfcan.node[i]->NCR &= ~((uint32_t)CAN_NODE_NCR_INIT_Msk | (uint32_t)CAN_NODE_NCR_CCE_Msk);
 		}
 	}
 }
@@ -410,6 +408,12 @@ void tfcan_reconfigure_transceiver(void) {
 		// bit-timing
 		tfcan.node[i]->NBTR = nbtr;
 
+		// frame counter
+		tfcan.node[i]->NFCR = (tfcan.node[i]->NFCR & ~(uint32_t)(CAN_NODE_NFCR_CFMOD_Msk |
+		                                                         CAN_NODE_NFCR_CFSEL_Msk)) |
+		                      (((uint32_t)0b00 << CAN_NODE_NFCR_CFMOD_Pos) & (uint32_t)CAN_NODE_NFCR_CFMOD_Msk) |
+		                      (((uint32_t)0b010 << CAN_NODE_NFCR_CFSEL_Pos) & (uint32_t)CAN_NODE_NFCR_CFSEL_Msk);
+
 		// loopback mode
 		if (tfcan.transceiver_mode == TFCAN_TRANSCEIVER_MODE_LOOPBACK) {
 			tfcan.node[i]->NPCR |= (uint32_t)CAN_NODE_NPCR_LBM_Msk;
@@ -417,11 +421,12 @@ void tfcan_reconfigure_transceiver(void) {
 			tfcan.node[i]->NPCR &= ~(uint32_t)CAN_NODE_NPCR_LBM_Msk;
 		}
 
-		// frame counter
-		tfcan.node[i]->NFCR = (tfcan.node[i]->NFCR & ~(uint32_t)(CAN_NODE_NFCR_CFMOD_Msk |
-		                                                         CAN_NODE_NFCR_CFSEL_Msk)) |
-		                      (((uint32_t)0b00 << CAN_NODE_NFCR_CFMOD_Pos) & (uint32_t)CAN_NODE_NFCR_CFMOD_Msk) |
-		                      (((uint32_t)0b010 << CAN_NODE_NFCR_CFSEL_Pos) & (uint32_t)CAN_NODE_NFCR_CFSEL_Msk);
+		// read-only mode
+		if (tfcan.transceiver_mode == TFCAN_TRANSCEIVER_MODE_READ_ONLY) {
+			tfcan.node[i]->NCR |= (uint32_t)CAN_NODE_NCR_CALM_Msk;
+		} else {
+			tfcan.node[i]->NCR &= ~(uint32_t)CAN_NODE_NCR_CALM_Msk;
+		}
 	}
 
 	tfcan.tx_node = tfcan.node[0];
@@ -673,6 +678,12 @@ void tfcan_check_tx_buffer_timeout(void) {
 
 // add frame to TX backlog
 bool tfcan_enqueue_frame(TFCAN_Frame *frame) {
+	if (tfcan.reconfigure_queues ||
+	    tfcan.transceiver_mode == TFCAN_TRANSCEIVER_MODE_READ_ONLY ||
+	    tfcan.tx_buffer_size == 0) {
+		return false;
+	}
+
 	if (tfcan.tx_backlog[tfcan.tx_backlog_end].mo_type != TFCAN_MO_TYPE_INVALID) {
 		return false; // TX backlog full
 	}
@@ -685,6 +696,10 @@ bool tfcan_enqueue_frame(TFCAN_Frame *frame) {
 
 // remove frame from RX backlog
 bool tfcan_dequeue_frame(TFCAN_Frame *frame) {
+	if (tfcan.reconfigure_queues) {
+		return false;
+	}
+
 	if (tfcan.rx_backlog[tfcan.rx_backlog_start].mo_type == TFCAN_MO_TYPE_INVALID) {
 		return false; // RX backlog empty
 	}
