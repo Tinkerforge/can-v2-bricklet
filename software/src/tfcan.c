@@ -186,8 +186,11 @@ void tfcan_tick(void) {
 		}
 
 		logd("nx-tx %u\n\r", tfcan.tx_buffer_mo_next_index);
-		logd("bl-tx %u[%u] -> %u[%u]\n\r", tfcan.tx_backlog_start, tfcan.tx_backlog[tfcan.tx_backlog_start].mo_type,
-		                                   tfcan.tx_backlog_end, tfcan.tx_backlog[tfcan.tx_backlog_end].mo_type);
+
+		if (tfcan.tx_backlog_size > 0) {
+			logd("bl-tx %u[%u] -> %u[%u]\n\r", tfcan.tx_backlog_start, tfcan.tx_backlog[tfcan.tx_backlog_start].mo_type,
+			                                   tfcan.tx_backlog_end, tfcan.tx_backlog[tfcan.tx_backlog_end].mo_type);
+		}
 
 		uartbb_printf("------\n\r");
 
@@ -202,8 +205,11 @@ void tfcan_tick(void) {
 			}
 		}
 
-		logd("bl-rx %u[%u] -> %u[%u]\n\r", tfcan.rx_backlog_start, tfcan.rx_backlog[tfcan.rx_backlog_start].mo_type,
-		                                   tfcan.rx_backlog_end, tfcan.rx_backlog[tfcan.rx_backlog_end].mo_type);
+		if (tfcan.rx_backlog_size > 0) {
+			logd("bl-rx %u[%u] -> %u[%u]\n\r", tfcan.rx_backlog_start, tfcan.rx_backlog[tfcan.rx_backlog_start].mo_type,
+			                                   tfcan.rx_backlog_end, tfcan.rx_backlog[tfcan.rx_backlog_end].mo_type);
+		}
+
 		uartbb_printf("<<<<<<\n\r");
 
 		tfcan.last_buffer_debug = system_timer_get_ms();
@@ -218,7 +224,8 @@ void tfcan_tick(void) {
 	// write at most TX FIFO size frames
 	for (uint8_t i = 0; i < tfcan.tx_buffer_size; ++i) {
 		// check TX backlog
-		if (tfcan.tx_backlog[tfcan.tx_backlog_start].mo_type == TFCAN_MO_TYPE_INVALID) {
+		if (tfcan.tx_backlog_size == 0 ||
+		    tfcan.tx_backlog[tfcan.tx_backlog_start].mo_type == TFCAN_MO_TYPE_INVALID) {
 			break; // TX backlog empty
 		}
 
@@ -348,7 +355,8 @@ void tfcan_tick(void) {
 		const int32_t rx_buffer_mo_age = tfcan.rx_buffer_mo_age[k][rx_buffer_mo_next_index];
 
 		// check RX backlog
-		if (tfcan.rx_backlog[tfcan.rx_backlog_end].mo_type == TFCAN_MO_TYPE_INVALID) {
+		if (tfcan.rx_backlog_size > 0 &&
+		    tfcan.rx_backlog[tfcan.rx_backlog_end].mo_type == TFCAN_MO_TYPE_INVALID) {
 			logd("rx %u:%u (%d) -> %u\n\r", k, rx_buffer_mo_next_index, rx_buffer_mo_age, tfcan.rx_backlog_end);
 
 			TFCAN_Frame *frame = &tfcan.rx_backlog[tfcan.rx_backlog_end];
@@ -793,7 +801,8 @@ void tfcan_check_tx_buffer_timeout(void) {
 bool tfcan_enqueue_frame(TFCAN_Frame *frame) {
 	if (tfcan.reconfigure_queues ||
 	    tfcan.transceiver_mode == TFCAN_TRANSCEIVER_MODE_READ_ONLY ||
-	    tfcan.tx_buffer_size == 0) {
+	    tfcan.tx_buffer_size == 0 ||
+	    tfcan.tx_backlog_size == 0) {
 		return false;
 	}
 
@@ -809,7 +818,8 @@ bool tfcan_enqueue_frame(TFCAN_Frame *frame) {
 
 // remove frame from RX backlog
 bool tfcan_dequeue_frame(TFCAN_Frame *frame) {
-	if (tfcan.reconfigure_queues) {
+	if (tfcan.reconfigure_queues ||
+	    tfcan.rx_backlog_size == 0) {
 		return false;
 	}
 
