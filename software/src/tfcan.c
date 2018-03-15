@@ -671,7 +671,6 @@ void tfcan_reconfigure_queues(void) {
 		if (rx_buffer_size > 0) {
 			for (uint8_t i = 1; i < rx_buffer_size; ++i) {
 				tfcan_mo_init_rx_fifo_slave(rx_buffer_mo[i], mo_offset);
-				tfcan_mo_change_status(rx_buffer_mo[i], TFCAN_MO_SET_STATUS_RX_ENABLE);
 			}
 
 			tfcan_mo_set_rx_filter(rx_buffer_mo[0], tfcan.rx_filter_mode[k],
@@ -713,6 +712,7 @@ void tfcan_reconfigure_rx_filters(void) {
 }
 
 void tfcan_check_tx_buffer_timeout(void) {
+	// FIXME: how to detect transmission failure for a single-shot frame?
 	if (tfcan.tx_buffer_timeout <= 0 || tfcan.tx_buffer_size == 0) {
 		return;
 	}
