@@ -530,8 +530,16 @@ void tfcan_reconfigure_transceiver(void) {
 
 		// loopback mode
 		if (tfcan.transceiver_mode == TFCAN_TRANSCEIVER_MODE_LOOPBACK) {
+			if ((tfcan.node[i]->NPCR & (uint32_t)CAN_NODE_NPCR_LBM_Msk) == 0) {
+				tfcan.reconfigure_queues = true;
+			}
+
 			tfcan.node[i]->NPCR |= (uint32_t)CAN_NODE_NPCR_LBM_Msk;
 		} else {
+			if ((tfcan.node[i]->NPCR & (uint32_t)CAN_NODE_NPCR_LBM_Msk) != 0) {
+				tfcan.reconfigure_queues = true;
+			}
+
 			tfcan.node[i]->NPCR &= ~(uint32_t)CAN_NODE_NPCR_LBM_Msk;
 		}
 
