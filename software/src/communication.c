@@ -44,7 +44,7 @@ BootloaderHandleMessageResponse handle_message(const void *message, void *respon
 		case FID_GET_QUEUE_CONFIGURATION_LOW_LEVEL: return get_queue_configuration_low_level(message, response);
 		case FID_SET_READ_FILTER_CONFIGURATION: return set_read_filter_configuration(message);
 		case FID_GET_READ_FILTER_CONFIGURATION: return get_read_filter_configuration(message, response);
-		case FID_GET_ERROR_LOG: return get_error_log(message, response);
+		case FID_GET_ERROR_LOG_LOW_LEVEL: return get_error_log_low_level(message, response);
 		case FID_SET_COMMUNICATION_LED_CONFIG: return set_communication_led_config(message);
 		case FID_GET_COMMUNICATION_LED_CONFIG: return get_communication_led_config(message, response);
 		case FID_SET_ERROR_LED_CONFIG: return set_error_led_config(message);
@@ -246,8 +246,31 @@ BootloaderHandleMessageResponse get_read_filter_configuration(const GetReadFilte
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
 
-BootloaderHandleMessageResponse get_error_log(const GetErrorLog *data, GetErrorLog_Response *response) {
-	response->header.length = sizeof(GetErrorLog_Response);
+BootloaderHandleMessageResponse get_error_log_low_level(const GetErrorLogLowLevel *data, GetErrorLogLowLevel_Response *response) {
+	response->header.length                              = sizeof(GetErrorLogLowLevel_Response);
+	response->transceiver_state                          = tfcan.transceiver_state;
+	response->transceiver_write_error_level              = tfcan.transceiver_tx_error_level;
+	response->transceiver_read_error_level               = tfcan.transceiver_rx_error_level;
+	response->transceiver_stuff_error_count              = tfcan.transceiver_stuff_error_count;
+	response->transceiver_form_error_count               = tfcan.transceiver_form_error_count;
+	response->transceiver_ack_error_count                = tfcan.transceiver_ack_error_count;
+	response->transceiver_bit1_error_count               = tfcan.transceiver_bit1_error_count;
+	response->transceiver_bit0_error_count               = tfcan.transceiver_bit0_error_count;
+	response->transceiver_crc_error_count                = tfcan.transceiver_crc_error_count;
+	response->write_buffer_timeout_error_count           = tfcan.tx_buffer_timeout_error_count;
+	response->read_buffer_overflow_error_count           = tfcan.rx_buffer_overflow_error_count;
+	response->read_buffer_overflow_error_occurred_length = 0;
+
+	for (uint8_t i = 0; i < TFCAN_BUFFER_SIZE; ++i) {
+		if (tfcan.rx_buffer_size[i] != 0) {
+			response->read_buffer_overflow_error_occurred_length = i + 1;
+		}
+	}
+
+	response->read_buffer_overflow_error_occurred_data   = tfcan.rx_buffer_overflow_error_occurred & ((1u << response->read_buffer_overflow_error_occurred_length) - 1);
+	response->read_backlog_overflow_error_count          = tfcan.rx_backlog_overflow_error_count;
+
+	tfcan.rx_buffer_overflow_error_occurred = 0; // reading the error-log clears the occurred bitmask
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
@@ -280,11 +303,13 @@ BootloaderHandleMessageResponse set_error_led_config(const SetErrorLEDConfig *da
 		return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
 	}
 
-	if (data->config == CAN_V2_ERROR_LED_CONFIG_SHOW_ERROR) {
+	if (data->config >= CAN_V2_ERROR_LED_CONFIG_SHOW_TRANSCEIVER_STATE) {
 		tfcan.error_led_state.config = LED_FLICKER_CONFIG_EXTERNAL;
 	} else {
 		tfcan.error_led_state.config = data->config;
 	}
+
+	tfcan.error_led_config = data->config;
 
 	if (tfcan.error_led_state.config == LED_FLICKER_CONFIG_OFF ||
 	    tfcan.error_led_state.config == LED_FLICKER_CONFIG_EXTERNAL) {
@@ -298,12 +323,7 @@ BootloaderHandleMessageResponse set_error_led_config(const SetErrorLEDConfig *da
 
 BootloaderHandleMessageResponse get_error_led_config(const GetErrorLEDConfig *data, GetErrorLEDConfig_Response *response) {
 	response->header.length = sizeof(GetErrorLEDConfig_Response);
-
-	if (tfcan.error_led_state.config == LED_FLICKER_CONFIG_EXTERNAL) {
-		response->config = CAN_V2_ERROR_LED_CONFIG_SHOW_ERROR;
-	} else {
-		response->config = tfcan.error_led_state.config;
-	}
+	response->config        = tfcan.error_led_config;
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }

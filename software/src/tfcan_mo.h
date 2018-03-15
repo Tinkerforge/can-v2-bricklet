@@ -124,12 +124,6 @@ void tfcan_mo_change_status(CAN_MO_TypeDef *const mo, const uint32_t mask);
 
 uint16_t tfcan_mo_get_frame_counter(CAN_MO_TypeDef *const mo);
 
-void tfcan_mo_set_irq_pointer(CAN_MO_TypeDef *const mo,
-                              const TFCAN_MOIRQPointer irq_pointer,
-                              const uint32_t srq_index);
-
-void tfcan_mo_enable_event(CAN_MO_TypeDef *const mo, const uint32_t event);
-
 void tfcan_mo_set_identifier(CAN_MO_TypeDef *const mo, const TFCAN_MOType type,
                              const uint32_t identifier);
 

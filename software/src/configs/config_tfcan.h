@@ -33,8 +33,6 @@
 #define TFCAN_FREQUENCY                           48000000
 
 #define TFCAN_TX_PIN                              P0_4
-#define TFCAN_TX_SRQ_INDEX                        0
-#define TFCAN_TX_IRQ_INDEX                        0
 #define TFCAN_TX_BUFFER_TIMEOUT_SETTLE_DURATION   2 // milliseconds
 
 #define TFCAN_RX_PIN                              P0_5
@@ -43,6 +41,9 @@
 #define TFCAN_RX_IRQ_INDEX                        0
 
 #define TFCAN_NODE_SIZE                           2
+
+#define TFCAN_NODE_LEC_SRQ_INDEX                  0
+#define TFCAN_NODE_LEC_IRQ_INDEX                  0
 
 #define TFCAN_BUFFER_SIZE                         32
 //#define TFCAN_BUFFER_DEBUG

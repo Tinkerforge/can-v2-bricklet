@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #############################################################
-# This file was automatically generated on 2018-03-14.      #
+# This file was automatically generated on 2018-03-15.      #
 #                                                           #
 # Python Bindings Version 2.1.16                            #
 #                                                           #
@@ -22,11 +22,12 @@ ReadFrameLowLevel = namedtuple('ReadFrameLowLevel', ['success', 'frame_type', 'i
 GetTransceiverConfiguration = namedtuple('TransceiverConfiguration', ['baud_rate', 'transceiver_mode'])
 GetQueueConfigurationLowLevel = namedtuple('QueueConfigurationLowLevel', ['write_buffer_size', 'write_buffer_timeout', 'write_backlog_size', 'read_buffer_sizes_length', 'read_buffer_sizes_data', 'read_backlog_size'])
 GetReadFilterConfiguration = namedtuple('ReadFilterConfiguration', ['filter_mode', 'filter_mask', 'filter_identifier'])
-GetErrorLog = namedtuple('ErrorLog', ['write_error_level', 'read_error_level', 'transceiver_disabled', 'write_timeout_count', 'read_register_overflow_count', 'read_buffer_overflow_count'])
+GetErrorLogLowLevel = namedtuple('ErrorLogLowLevel', ['transceiver_state', 'transceiver_write_error_level', 'transceiver_read_error_level', 'transceiver_stuff_error_count', 'transceiver_form_error_count', 'transceiver_ack_error_count', 'transceiver_bit1_error_count', 'transceiver_bit0_error_count', 'transceiver_crc_error_count', 'write_buffer_timeout_error_count', 'read_buffer_overflow_error_count', 'read_buffer_overflow_error_occurred_length', 'read_buffer_overflow_error_occurred_data', 'read_backlog_overflow_error_count'])
 GetSPITFPErrorCount = namedtuple('SPITFPErrorCount', ['error_count_ack_checksum', 'error_count_message_checksum', 'error_count_frame', 'error_count_overflow'])
 GetIdentity = namedtuple('Identity', ['uid', 'connected_uid', 'position', 'hardware_version', 'firmware_version', 'device_identifier'])
 ReadFrame = namedtuple('ReadFrame', ['success', 'frame_type', 'identifier', 'data'])
 GetQueueConfiguration = namedtuple('QueueConfiguration', ['write_buffer_size', 'write_buffer_timeout', 'write_backlog_size', 'read_buffer_sizes', 'read_backlog_size'])
+GetErrorLog = namedtuple('ErrorLog', ['transceiver_state', 'transceiver_write_error_level', 'transceiver_read_error_level', 'transceiver_stuff_error_count', 'transceiver_form_error_count', 'transceiver_ack_error_count', 'transceiver_bit1_error_count', 'transceiver_bit0_error_count', 'transceiver_crc_error_count', 'write_buffer_timeout_error_count', 'read_buffer_overflow_error_count', 'read_buffer_overflow_error_occurred', 'read_backlog_overflow_error_count'])
 
 class BrickletCANV2(Device):
     """
@@ -51,7 +52,7 @@ class BrickletCANV2(Device):
     FUNCTION_GET_QUEUE_CONFIGURATION_LOW_LEVEL = 8
     FUNCTION_SET_READ_FILTER_CONFIGURATION = 9
     FUNCTION_GET_READ_FILTER_CONFIGURATION = 10
-    FUNCTION_GET_ERROR_LOG = 11
+    FUNCTION_GET_ERROR_LOG_LOW_LEVEL = 11
     FUNCTION_SET_COMMUNICATION_LED_CONFIG = 12
     FUNCTION_GET_COMMUNICATION_LED_CONFIG = 13
     FUNCTION_SET_ERROR_LED_CONFIG = 14
@@ -80,6 +81,9 @@ class BrickletCANV2(Device):
     FILTER_MODE_MATCH_STANDARD_ONLY = 1
     FILTER_MODE_MATCH_EXTENDED_ONLY = 2
     FILTER_MODE_MATCH_STANDARD_AND_EXTENDED = 3
+    TRANSCEIVER_STATE_ERROR_ACTIVE = 0
+    TRANSCEIVER_STATE_ERROR_PASSIVE = 1
+    TRANSCEIVER_STATE_BUS_OFF = 2
     COMMUNICATION_LED_CONFIG_OFF = 0
     COMMUNICATION_LED_CONFIG_ON = 1
     COMMUNICATION_LED_CONFIG_SHOW_HEARTBEAT = 2
@@ -87,7 +91,8 @@ class BrickletCANV2(Device):
     ERROR_LED_CONFIG_OFF = 0
     ERROR_LED_CONFIG_ON = 1
     ERROR_LED_CONFIG_SHOW_HEARTBEAT = 2
-    ERROR_LED_CONFIG_SHOW_ERROR = 3
+    ERROR_LED_CONFIG_SHOW_TRANSCEIVER_STATE = 3
+    ERROR_LED_CONFIG_SHOW_ERROR = 4
     BOOTLOADER_MODE_BOOTLOADER = 0
     BOOTLOADER_MODE_FIRMWARE = 1
     BOOTLOADER_MODE_BOOTLOADER_WAIT_FOR_REBOOT = 2
@@ -123,7 +128,7 @@ class BrickletCANV2(Device):
         self.response_expected[BrickletCANV2.FUNCTION_GET_QUEUE_CONFIGURATION_LOW_LEVEL] = BrickletCANV2.RESPONSE_EXPECTED_ALWAYS_TRUE
         self.response_expected[BrickletCANV2.FUNCTION_SET_READ_FILTER_CONFIGURATION] = BrickletCANV2.RESPONSE_EXPECTED_FALSE
         self.response_expected[BrickletCANV2.FUNCTION_GET_READ_FILTER_CONFIGURATION] = BrickletCANV2.RESPONSE_EXPECTED_ALWAYS_TRUE
-        self.response_expected[BrickletCANV2.FUNCTION_GET_ERROR_LOG] = BrickletCANV2.RESPONSE_EXPECTED_ALWAYS_TRUE
+        self.response_expected[BrickletCANV2.FUNCTION_GET_ERROR_LOG_LOW_LEVEL] = BrickletCANV2.RESPONSE_EXPECTED_ALWAYS_TRUE
         self.response_expected[BrickletCANV2.FUNCTION_SET_COMMUNICATION_LED_CONFIG] = BrickletCANV2.RESPONSE_EXPECTED_FALSE
         self.response_expected[BrickletCANV2.FUNCTION_GET_COMMUNICATION_LED_CONFIG] = BrickletCANV2.RESPONSE_EXPECTED_ALWAYS_TRUE
         self.response_expected[BrickletCANV2.FUNCTION_SET_ERROR_LED_CONFIG] = BrickletCANV2.RESPONSE_EXPECTED_FALSE
@@ -205,7 +210,8 @@ class BrickletCANV2(Device):
         :func:`Set Read Filter Configuration`).
 
         Instead of polling with this function, you can also use callbacks. See the
-        :func:`Set Frame Read Callback` function and the :cb:`Frame Read` callback.
+        :func:`Set Frame Read Callback Configuration` function and the :cb:`Frame Read`
+        callback.
         """
         return ReadFrameLowLevel(*self.ipcon.send_request(self, BrickletCANV2.FUNCTION_READ_FRAME_LOW_LEVEL, (), '', '! B I B 15B'))
 
@@ -301,6 +307,8 @@ class BrickletCANV2(Device):
         * Milliseconds (> 0): A limited number of transmission attempts will be made.
           If the frame could not be transmitted successfully after the configured
           number of milliseconds then the frame is discarded.
+
+        The current content of the queues is lost when this function is called.
 
         The default is:
 
@@ -402,43 +410,45 @@ class BrickletCANV2(Device):
 
         return GetReadFilterConfiguration(*self.ipcon.send_request(self, BrickletCANV2.FUNCTION_GET_READ_FILTER_CONFIGURATION, (buffer_index,), 'B', 'B I I'))
 
-    def get_error_log(self):
+    def get_error_log_low_level(self):
         """
         Returns information about different kinds of errors.
 
-        The write and read error levels indicate the current level of checksum,
-        acknowledgement, form, bit and stuffing errors during CAN bus write and read
-        operations.
+        The write and read error levels indicate the current level of stuffing, form,
+        acknowledgement, bit and checksum errors during CAN bus write and read
+        operations. For each of this error kinds there is also an individual counter.
 
         When the write error level extends 255 then the CAN transceiver gets disabled
-        and no frames can be transmitted or received anymore. The CAN transceiver will
-        automatically be activated again after the CAN bus is idle for a while.
+        (bus-off) and no frames can be transmitted or received anymore. The CAN
+        transceiver will automatically be activated again after the CAN bus is idle for
+        a while.
 
-        The write and read error levels are not available in read-only transceiver mode
-        (see :func:`Set Configuration`) and are reset to 0 as a side effect of changing
-        the configuration or the read filter.
-
-        The write timeout, read register and buffer overflow counts represents the
+        The write buffer timeout, read buffer and backlog overflow counts represents the
         number of these errors:
 
-        * A write timeout occurs if a frame could not be transmitted before the
-          configured write timeout expired (see :func:`Set Configuration`).
-        * A read register overflow occurs if the read register of the CAN transceiver
+        * A write buffer timeout occurs if a frame could not be transmitted before the
+          configured write buffer timeout expired (see :func:`Set Queue Configuration`).
+        * A read buffer overflow occurs if a read buffer of the CAN transceiver
           still contains the last received frame when the next frame arrives. In this
-          case the newly arrived frame is lost. This happens if the CAN transceiver
+          case the last received frame is lost. This happens if the CAN transceiver
           receives more frames than the Bricklet can handle. Using the read filter
-          (see :func:`Set Read Filter`) can help to reduce the amount of received frames.
-          This count is not exact, but a lower bound, because the Bricklet might not
-          able detect all overflows if they occur in rapid succession.
-        * A read buffer overflow occurs if the read buffer of the Bricklet is already
-          full when the next frame should be read from the read register of the CAN
-          transceiver. In this case the frame in the read register is lost. This
+          (see :func:`Set Read Filter Configuration`) can help to reduce the amount of
+          received frames. This count is not exact, but a lower bound, because the
+          Bricklet might not able detect all overflows if they occur in rapid succession.
+        * A read backlog overflow occurs if the read backlog of the Bricklet is already
+          full when the next frame should be read from a read buffer of the CAN
+          transceiver. In this case the frame in the read buffer is lost. This
           happens if the CAN transceiver receives more frames to be added to the read
-          buffer than are removed from the read buffer using the :func:`Read Frame`
-          function. Using the :cb:`Frame Read` callback ensures that the read buffer
+          backlog than are removed from the read backlog using the :func:`Read Frame`
+          function. Using the :cb:`Frame Read` callback ensures that the read backlog
           can not overflow.
+
+        The read buffer overflow counter counts the overflows of all configured read
+        buffers. Which read buffer exactly suffered from an overflow can be figured
+        out from the read buffer overflow occurrence list
+        (``read_buffer_overflow_error_occurred``).
         """
-        return GetErrorLog(*self.ipcon.send_request(self, BrickletCANV2.FUNCTION_GET_ERROR_LOG, (), '', 'B B ! I I I'))
+        return GetErrorLogLowLevel(*self.ipcon.send_request(self, BrickletCANV2.FUNCTION_GET_ERROR_LOG_LOW_LEVEL, (), '', 'B B B I I I I I I I I B 32! I'))
 
     def set_communication_led_config(self, config):
         """
@@ -463,9 +473,13 @@ class BrickletCANV2(Device):
         """
         Sets the error LED configuration.
 
-        By default the error LED turns on if there is any error (see
-        :func:`Get Error Log`). If you call this function with the show-error option
-        again, the LED will turn off until the next error occurs.
+        By default (show-transceiver-state) the error LED turns on if the CAN
+        transceiver is error-passive or bus-off state (see :func:`Get Error Log`). If
+        the CAN transceiver is in error-active state the LED turns off.
+
+        If the LED is configured as show-error then the error LED turns on if any error
+        occurs. If you call this function with the show-error option again, the LED will
+        turn off until the next error occurs.
 
         You can also turn the LED permanently on/off or show a heartbeat.
 
@@ -689,7 +703,8 @@ class BrickletCANV2(Device):
         :func:`Set Read Filter Configuration`).
 
         Instead of polling with this function, you can also use callbacks. See the
-        :func:`Set Frame Read Callback` function and the :cb:`Frame Read` callback.
+        :func:`Set Frame Read Callback Configuration` function and the :cb:`Frame Read`
+        callback.
         """
         ret = self.read_frame_low_level()
 
@@ -743,6 +758,8 @@ class BrickletCANV2(Device):
           If the frame could not be transmitted successfully after the configured
           number of milliseconds then the frame is discarded.
 
+        The current content of the queues is lost when this function is called.
+
         The default is:
 
         * 8 write buffers,
@@ -776,6 +793,48 @@ class BrickletCANV2(Device):
         ret = self.get_queue_configuration_low_level()
 
         return GetQueueConfiguration(ret.write_buffer_size, ret.write_buffer_timeout, ret.write_backlog_size, ret.read_buffer_sizes_data[:ret.read_buffer_sizes_length], ret.read_backlog_size)
+
+    def get_error_log(self):
+        """
+        Returns information about different kinds of errors.
+
+        The write and read error levels indicate the current level of stuffing, form,
+        acknowledgement, bit and checksum errors during CAN bus write and read
+        operations. For each of this error kinds there is also an individual counter.
+
+        When the write error level extends 255 then the CAN transceiver gets disabled
+        (bus-off) and no frames can be transmitted or received anymore. The CAN
+        transceiver will automatically be activated again after the CAN bus is idle for
+        a while.
+
+        The write buffer timeout, read buffer and backlog overflow counts represents the
+        number of these errors:
+
+        * A write buffer timeout occurs if a frame could not be transmitted before the
+          configured write buffer timeout expired (see :func:`Set Queue Configuration`).
+        * A read buffer overflow occurs if a read buffer of the CAN transceiver
+          still contains the last received frame when the next frame arrives. In this
+          case the last received frame is lost. This happens if the CAN transceiver
+          receives more frames than the Bricklet can handle. Using the read filter
+          (see :func:`Set Read Filter Configuration`) can help to reduce the amount of
+          received frames. This count is not exact, but a lower bound, because the
+          Bricklet might not able detect all overflows if they occur in rapid succession.
+        * A read backlog overflow occurs if the read backlog of the Bricklet is already
+          full when the next frame should be read from a read buffer of the CAN
+          transceiver. In this case the frame in the read buffer is lost. This
+          happens if the CAN transceiver receives more frames to be added to the read
+          backlog than are removed from the read backlog using the :func:`Read Frame`
+          function. Using the :cb:`Frame Read` callback ensures that the read backlog
+          can not overflow.
+
+        The read buffer overflow counter counts the overflows of all configured read
+        buffers. Which read buffer exactly suffered from an overflow can be figured
+        out from the read buffer overflow occurrence list
+        (``read_buffer_overflow_error_occurred``).
+        """
+        ret = self.get_error_log_low_level()
+
+        return GetErrorLog(ret.transceiver_state, ret.transceiver_write_error_level, ret.transceiver_read_error_level, ret.transceiver_stuff_error_count, ret.transceiver_form_error_count, ret.transceiver_ack_error_count, ret.transceiver_bit1_error_count, ret.transceiver_bit0_error_count, ret.transceiver_crc_error_count, ret.write_buffer_timeout_error_count, ret.read_buffer_overflow_error_count, ret.read_buffer_overflow_error_occurred_data[:ret.read_buffer_overflow_error_occurred_length], ret.read_backlog_overflow_error_count)
 
     def register_callback(self, callback_id, function):
         """

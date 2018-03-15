@@ -48,6 +48,10 @@ void communication_init(void);
 #define CAN_V2_FILTER_MODE_MATCH_EXTENDED_ONLY 2
 #define CAN_V2_FILTER_MODE_MATCH_STANDARD_AND_EXTENDED 3
 
+#define CAN_V2_TRANSCEIVER_STATE_ERROR_ACTIVE 0
+#define CAN_V2_TRANSCEIVER_STATE_ERROR_PASSIVE 1
+#define CAN_V2_TRANSCEIVER_STATE_BUS_OFF 2
+
 #define CAN_V2_COMMUNICATION_LED_CONFIG_OFF 0
 #define CAN_V2_COMMUNICATION_LED_CONFIG_ON 1
 #define CAN_V2_COMMUNICATION_LED_CONFIG_SHOW_HEARTBEAT 2
@@ -56,7 +60,8 @@ void communication_init(void);
 #define CAN_V2_ERROR_LED_CONFIG_OFF 0
 #define CAN_V2_ERROR_LED_CONFIG_ON 1
 #define CAN_V2_ERROR_LED_CONFIG_SHOW_HEARTBEAT 2
-#define CAN_V2_ERROR_LED_CONFIG_SHOW_ERROR 3
+#define CAN_V2_ERROR_LED_CONFIG_SHOW_TRANSCEIVER_STATE 3
+#define CAN_V2_ERROR_LED_CONFIG_SHOW_ERROR 4
 
 #define CAN_V2_BOOTLOADER_MODE_BOOTLOADER 0
 #define CAN_V2_BOOTLOADER_MODE_FIRMWARE 1
@@ -87,7 +92,7 @@ void communication_init(void);
 #define FID_GET_QUEUE_CONFIGURATION_LOW_LEVEL 8
 #define FID_SET_READ_FILTER_CONFIGURATION 9
 #define FID_GET_READ_FILTER_CONFIGURATION 10
-#define FID_GET_ERROR_LOG 11
+#define FID_GET_ERROR_LOG_LOW_LEVEL 11
 #define FID_SET_COMMUNICATION_LED_CONFIG 12
 #define FID_GET_COMMUNICATION_LED_CONFIG 13
 #define FID_SET_ERROR_LED_CONFIG 14
@@ -197,17 +202,25 @@ typedef struct {
 
 typedef struct {
 	TFPMessageHeader header;
-} __attribute__((__packed__)) GetErrorLog;
+} __attribute__((__packed__)) GetErrorLogLowLevel;
 
 typedef struct {
 	TFPMessageHeader header;
-	uint8_t write_error_level;
-	uint8_t read_error_level;
-	bool transceiver_disabled;
-	uint32_t write_timeout_count;
-	uint32_t read_register_overflow_count;
-	uint32_t read_buffer_overflow_count;
-} __attribute__((__packed__)) GetErrorLog_Response;
+	uint8_t transceiver_state;
+	uint8_t transceiver_write_error_level;
+	uint8_t transceiver_read_error_level;
+	uint32_t transceiver_stuff_error_count;
+	uint32_t transceiver_form_error_count;
+	uint32_t transceiver_ack_error_count;
+	uint32_t transceiver_bit1_error_count;
+	uint32_t transceiver_bit0_error_count;
+	uint32_t transceiver_crc_error_count;
+	uint32_t write_buffer_timeout_error_count;
+	uint32_t read_buffer_overflow_error_count;
+	uint8_t read_buffer_overflow_error_occurred_length;
+	uint32_t read_buffer_overflow_error_occurred_data;
+	uint32_t read_backlog_overflow_error_count;
+} __attribute__((__packed__)) GetErrorLogLowLevel_Response;
 
 typedef struct {
 	TFPMessageHeader header;
@@ -245,7 +258,6 @@ typedef struct {
 	uint8_t data_data[15];
 } __attribute__((__packed__)) FrameReadLowLevel_Callback;
 
-
 // Function prototypes
 BootloaderHandleMessageResponse write_frame_low_level(const WriteFrameLowLevel *data, WriteFrameLowLevel_Response *response);
 BootloaderHandleMessageResponse read_frame_low_level(const ReadFrameLowLevel *data, ReadFrameLowLevel_Response *response);
@@ -257,7 +269,7 @@ BootloaderHandleMessageResponse set_queue_configuration_low_level(const SetQueue
 BootloaderHandleMessageResponse get_queue_configuration_low_level(const GetQueueConfigurationLowLevel *data, GetQueueConfigurationLowLevel_Response *response);
 BootloaderHandleMessageResponse set_read_filter_configuration(const SetReadFilterConfiguration *data);
 BootloaderHandleMessageResponse get_read_filter_configuration(const GetReadFilterConfiguration *data, GetReadFilterConfiguration_Response *response);
-BootloaderHandleMessageResponse get_error_log(const GetErrorLog *data, GetErrorLog_Response *response);
+BootloaderHandleMessageResponse get_error_log_low_level(const GetErrorLogLowLevel *data, GetErrorLogLowLevel_Response *response);
 BootloaderHandleMessageResponse set_communication_led_config(const SetCommunicationLEDConfig *data);
 BootloaderHandleMessageResponse get_communication_led_config(const GetCommunicationLEDConfig *data, GetCommunicationLEDConfig_Response *response);
 BootloaderHandleMessageResponse set_error_led_config(const SetErrorLEDConfig *data);
@@ -270,6 +282,5 @@ bool handle_frame_read_low_level_callback(void);
 #define COMMUNICATION_CALLBACK_HANDLER_NUM 1
 #define COMMUNICATION_CALLBACK_LIST_INIT \
 	handle_frame_read_low_level_callback, \
-
 
 #endif

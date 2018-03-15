@@ -32,9 +32,27 @@
 
 TFCAN tfcan;
 
-//void IRQ_Hdlr_0(void) {
-	//logd("irq0: %b, %d\n\r", CAN->MSPND[0], XMC_CAN_FIFO_GetCurrentMO(&tfcan.mo[0]));
-//}
+void IRQ_Hdlr_0(void) {
+	bool error = false;
+
+	for (uint8_t i = 0; i < TFCAN_NODE_SIZE; ++i) {
+		const uint8_t lec = (tfcan.node[i]->NSR & (uint32_t)CAN_NODE_NSR_LEC_Msk) >> CAN_NODE_NSR_LEC_Pos;
+
+		switch (lec) {
+			case TFCAN_NODE_LEC_STUFF_ERROR: error = true; ++tfcan.transceiver_stuff_error_count; break;
+			case TFCAN_NODE_LEC_FORM_ERROR:  error = true; ++tfcan.transceiver_form_error_count;  break;
+			case TFCAN_NODE_LEC_ACK_ERROR:   error = true; ++tfcan.transceiver_ack_error_count;   break;
+			case TFCAN_NODE_LEC_BIT1_ERROR:  error = true; ++tfcan.transceiver_bit1_error_count;  break;
+			case TFCAN_NODE_LEC_BIT0_ERROR:  error = true; ++tfcan.transceiver_bit0_error_count;  break;
+			case TFCAN_NODE_LEC_CRC_ERROR:   error = true; ++tfcan.transceiver_crc_error_count;   break;
+			default:                                                                break;
+		}
+	}
+
+	if (error && tfcan.error_led_config == TFCAN_ERROR_LED_CONFIG_SHOW_ERROR) {
+		XMC_GPIO_SetOutputLow(TFCAN_ERROR_LED_PIN);
+	}
+}
 
 void tfcan_init(void) {
 	logd("sizeof(TFCAN) %u\n\r", sizeof(TFCAN));
@@ -104,13 +122,28 @@ void tfcan_init(void) {
 	// leave config mode
 	tfcan_set_config_mode(false);
 
-	// configure TX interrupt
-	//NVIC_EnableIRQ(TFCAN_TX_IRQ_INDEX);
-	//NVIC_SetPriority(TFCAN_TX_IRQ_INDEX, 0);
-	//XMC_SCU_SetInterruptControl(TFCAN_TX_IRQ_INDEX, XMC_SCU_IRQCTRL_CAN0_SR0_IRQ0);
-
+	// configure transceiver and queues
 	tfcan_reconfigure_transceiver();
 	tfcan_reconfigure_queues();
+
+	tfcan.transceiver_state = TFCAN_TRANSCEIVER_STATE_ERROR_ACTIVE;
+	tfcan.transceiver_tx_error_level = 0;
+	tfcan.transceiver_rx_error_level = 0;
+	tfcan.transceiver_stuff_error_count = 0;
+	tfcan.transceiver_form_error_count = 0;
+	tfcan.transceiver_ack_error_count = 0;
+	tfcan.transceiver_bit1_error_count = 0;
+	tfcan.transceiver_bit0_error_count = 0;
+	tfcan.transceiver_crc_error_count = 0;
+	tfcan.tx_buffer_timeout_error_count = 0;
+	tfcan.rx_buffer_overflow_error_count = 0;
+	tfcan.rx_buffer_overflow_error_occurred = 0;
+	tfcan.rx_backlog_overflow_error_count = 0;
+
+	// configure LEC interrupt
+	NVIC_EnableIRQ(TFCAN_NODE_LEC_IRQ_INDEX);
+	NVIC_SetPriority(TFCAN_NODE_LEC_IRQ_INDEX, 0);
+	XMC_SCU_SetInterruptControl(TFCAN_NODE_LEC_IRQ_INDEX, XMC_SCU_IRQCTRL_CAN0_SR0_IRQ0);
 
 	// configure communication LED
 	XMC_GPIO_CONFIG_t com_led_pin_config = {
@@ -132,9 +165,11 @@ void tfcan_init(void) {
 
 	XMC_GPIO_Init(TFCAN_ERROR_LED_PIN, &error_led_pin_config);
 
-	tfcan.error_led_state.config  = LED_FLICKER_CONFIG_EXTERNAL;
+	tfcan.error_led_state.config = LED_FLICKER_CONFIG_EXTERNAL;
 	tfcan.error_led_state.counter = 0;
 	tfcan.error_led_state.start = 0;
+
+	tfcan.error_led_config = TFCAN_ERROR_LED_CONFIG_SHOW_TRANSCEIVER_STATE;
 }
 
 void tfcan_tick(void) {
@@ -213,6 +248,12 @@ void tfcan_tick(void) {
 			tfcan_mo_change_status(tfcan.tx_buffer_mo[0], TFCAN_MO_SET_STATUS_TX_ENABLE1);
 		}
 
+		if (tfcan.tx_buffer_timeout < 0) {
+			tx_buffer_mo_next->MOFCR |= (uint32_t)CAN_MO_MOFCR_STT_Msk;
+		} else {
+			tx_buffer_mo_next->MOFCR &= ~(uint32_t)CAN_MO_MOFCR_STT_Msk;
+		}
+
 		tfcan_mo_change_status(tx_buffer_mo_next, TFCAN_MO_SET_STATUS_TX_REQUEST);
 
 		tfcan.tx_buffer_mo_timestamp[tfcan.tx_buffer_mo_next_index] = system_timer_get_ms();
@@ -225,6 +266,8 @@ void tfcan_tick(void) {
 	for (uint8_t k = 0; k < TFCAN_BUFFER_SIZE; ++k) {
 		tfcan.mo_frame_counter[k] = -1;
 	}
+
+	bool rx_buffer_overflow = false;
 
 	for (uint8_t k = 0; k < TFCAN_BUFFER_SIZE; ++k) {
 		const uint8_t rx_buffer_size = tfcan.rx_buffer_size[k];
@@ -239,10 +282,22 @@ void tfcan_tick(void) {
 		for (uint8_t i = 0; i < rx_buffer_size; ++i) {
 			const uint32_t status = tfcan_mo_get_status(rx_buffer_mo[i]);
 
+			if ((status & TFCAN_MO_STATUS_MESSAGE_LOST) != 0) {
+				tfcan_mo_change_status(rx_buffer_mo[i], TFCAN_MO_RESET_STATUS_MESSAGE_LOST);
+
+				++tfcan.rx_buffer_overflow_error_count;
+				tfcan.rx_buffer_overflow_error_occurred |= 1u << k;
+				rx_buffer_overflow = true;
+			}
+
 			if ((status & TFCAN_MO_STATUS_RX_PENDING) != 0) {
 				rx_buffer_mo_frame_counter[i] = tfcan_mo_get_frame_counter(rx_buffer_mo[i]);
 			}
 		}
+	}
+
+	if (rx_buffer_overflow && tfcan.error_led_config == TFCAN_ERROR_LED_CONFIG_SHOW_ERROR) {
+		XMC_GPIO_SetOutputLow(TFCAN_ERROR_LED_PIN);
 	}
 
 	// calculate RX MO age values
@@ -255,6 +310,8 @@ void tfcan_tick(void) {
 	}
 
 	// read at most RX FIFO size frames, sorted by RX MO age, oldest first
+	bool rx_backlog_overflow = false;
+
 	for (uint8_t z = 0; z < TFCAN_BUFFER_SIZE; ++z) {
 		int8_t k = -1;
 		uint16_t rx_buffer_mo_next_age_max = 0;
@@ -322,13 +379,40 @@ void tfcan_tick(void) {
 		} else {
 			logd("rx %u:%u (%d) drop\n\r", k, rx_buffer_mo_next_index, rx_buffer_mo_age);
 
-			tfcan_mo_change_status(rx_buffer_mo_next, TFCAN_MO_RESET_STATUS_RX_PENDING);
+			++tfcan.rx_backlog_overflow_error_count;
+			rx_backlog_overflow = true;
+
+			tfcan_mo_change_status(rx_buffer_mo_next, TFCAN_MO_RESET_STATUS_NEW_DATA |
+			                                          TFCAN_MO_RESET_STATUS_RX_PENDING);
 		}
 
 		tfcan.rx_buffer_mo_frame_counter[k][rx_buffer_mo_next_index] = -1;
 		tfcan.rx_buffer_mo_next_index[k] = (rx_buffer_mo_next_index + 1) % tfcan.rx_buffer_size[k];
 
 		led_flicker_increase_counter(&tfcan.com_led_state);
+	}
+
+	if (rx_backlog_overflow && tfcan.error_led_config == TFCAN_ERROR_LED_CONFIG_SHOW_ERROR) {
+		XMC_GPIO_SetOutputLow(TFCAN_ERROR_LED_PIN);
+	}
+
+	tfcan.transceiver_tx_error_level = (tfcan.node[0]->NECNT & (uint32_t)CAN_NODE_NECNT_TEC_Msk) >> CAN_NODE_NECNT_TEC_Pos;
+	tfcan.transceiver_rx_error_level = (tfcan.node[0]->NECNT & (uint32_t)CAN_NODE_NECNT_REC_Msk) >> CAN_NODE_NECNT_REC_Pos;
+
+	if ((tfcan.node[0]->NSR & (uint32_t)CAN_NODE_NSR_BOFF_Msk) != 0) {
+		tfcan.transceiver_state = TFCAN_TRANSCEIVER_STATE_BUS_OFF; // FIXME: need to manually clear the INIT bit to recover from bus-off state?
+	} else if (tfcan.transceiver_tx_error_level >= 128 || tfcan.transceiver_rx_error_level >= 128) {
+		tfcan.transceiver_state = TFCAN_TRANSCEIVER_STATE_ERROR_PASSIVE;
+	} else {
+		tfcan.transceiver_state = TFCAN_TRANSCEIVER_STATE_ERROR_ACTIVE;
+	}
+
+	if (tfcan.error_led_config == TFCAN_ERROR_LED_CONFIG_SHOW_TRANSCEIVER_STATE) {
+		if (tfcan.transceiver_state == TFCAN_TRANSCEIVER_STATE_ERROR_ACTIVE) {
+			XMC_GPIO_SetOutputHigh(TFCAN_ERROR_LED_PIN);
+		} else {
+			XMC_GPIO_SetOutputLow(TFCAN_ERROR_LED_PIN);
+		}
 	}
 
 	led_flicker_tick(&tfcan.com_led_state, system_timer_get_ms(), TFCAN_COM_LED_PIN);
@@ -449,6 +533,11 @@ void tfcan_reconfigure_transceiver(void) {
 		} else {
 			tfcan.node[i]->NCR &= ~(uint32_t)CAN_NODE_NCR_CALM_Msk;
 		}
+
+		// enable LEC event
+		tfcan.node[i]->NCR |= (uint32_t)CAN_NODE_NCR_LECIE_Msk;
+		tfcan.node[i]->NIPR = (tfcan.node[i]->NIPR & ~(uint32_t)CAN_NODE_NIPR_LECINP_Msk) |
+		                      ((uint32_t)TFCAN_NODE_LEC_SRQ_INDEX << CAN_NODE_NIPR_LECINP_Pos);
 	}
 
 	tfcan.tx_node = tfcan.node[0];
@@ -526,8 +615,6 @@ void tfcan_reconfigure_queues(void) {
 		tfcan.tx_buffer_mo[i] = (CAN_MO_TypeDef *)&CAN_MO->MO[mo_offset + i];
 
 		tfcan_mo_init_tx(tfcan.tx_buffer_mo[i]);
-		//tfcan_mo_set_irq_pointer(tfcan.tx_buffer_mo[i], TFCAN_MO_IRQ_POINTER_TRANSMIT, TFCAN_TX_SRQ_INDEX);
-		//tfcan_mo_enable_event(tfcan.tx_buffer_mo[i], TFCAN_MO_EVENT_TRANSMIT);
 
 		XMC_CAN_AllocateMOtoNodeList(CAN, tx_node_index, mo_offset + i);
 		while (!XMC_CAN_IsPanelControlReady(CAN)) {}
@@ -559,8 +646,6 @@ void tfcan_reconfigure_queues(void) {
 			rx_buffer_mo[i] = (CAN_MO_TypeDef *)&CAN_MO->MO[mo_offset + i];
 
 			tfcan_mo_init_rx(rx_buffer_mo[i], rx_buffer_type);
-			//tfcan_mo_set_irq_pointer(rx_buffer_mo[i], TFCAN_MO_IRQ_POINTER_RECEIVE, TFCAN_RX_SRQ_INDEX);
-			//tfcan_mo_enable_event(rx_buffer_mo[i], TFCAN_MO_EVENT_RECEIVE);
 
 			XMC_CAN_AllocateMOtoNodeList(CAN, rx_node_index, mo_offset + i);
 			while (!XMC_CAN_IsPanelControlReady(CAN)) {}
@@ -651,6 +736,12 @@ void tfcan_check_tx_buffer_timeout(void) {
 		tfcan.tx_buffer_timeout_settle_timestamp = system_timer_get_ms();
 
 		logd("tx %d timeout!\n\r", tfcan.tx_buffer_timeout_mo_index);
+
+		++tfcan.tx_buffer_timeout_error_count;
+
+		if (tfcan.error_led_config == TFCAN_ERROR_LED_CONFIG_SHOW_ERROR) {
+			XMC_GPIO_SetOutputLow(TFCAN_ERROR_LED_PIN);
+		}
 
 		// disable transmission to ensure consitent register content while
 		// modifying MOFGPR.CUR and MOSTAT.TXEN1

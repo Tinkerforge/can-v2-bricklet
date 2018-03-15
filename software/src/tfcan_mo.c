@@ -176,17 +176,6 @@ uint16_t tfcan_mo_get_frame_counter(CAN_MO_TypeDef *const mo) {
 	return (mo->MOIPR & (uint32_t)CAN_MO_MOIPR_CFCVAL_Msk) >> CAN_MO_MOIPR_CFCVAL_Pos;
 }
 
-void tfcan_mo_set_irq_pointer(CAN_MO_TypeDef *const mo,
-                              const TFCAN_MOIRQPointer irq_pointer,
-                              const uint32_t srq_index) {
-	mo->MOIPR = (mo->MOIPR & ~(uint32_t)((uint32_t)CAN_MO_MOIPR_Msk << (uint32_t)irq_pointer)) |
-	            (srq_index << (uint32_t)irq_pointer);
-}
-
-void tfcan_mo_enable_event(CAN_MO_TypeDef *const mo, const uint32_t event) {
-	mo->MOFCR |= event;
-}
-
 void tfcan_mo_set_identifier(CAN_MO_TypeDef *const mo, const TFCAN_MOType type,
                              const uint32_t identifier) {
 	if (type == TFCAN_MO_TYPE_STANDARD_DATA || type == TFCAN_MO_TYPE_STANDARD_REMOTE) {
