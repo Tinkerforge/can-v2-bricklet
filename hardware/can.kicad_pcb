@@ -77,7 +77,7 @@
     (pad_to_mask_clearance 0)
     (aux_axis_origin 125.3 118.1)
     (grid_origin 125.3 118.1)
-    (visible_elements FFFF7FBF)
+    (visible_elements FFFFFFBF)
     (pcbplotparams
       (layerselection 0x00030_80000001)
       (usegerberextensions true)
@@ -5687,7 +5687,7 @@
   )
 
   (module kicad-libraries:WEEE_7mm (layer Rückseite) (tedit 5922FFAE) (tstamp 54F8DA67)
-    (at 139.8 100.6 180)
+    (at 147.8 100.6 180)
     (fp_text reference VAL (at 0 0 180) (layer B.SilkS) hide
       (effects (font (size 0.2 0.2) (thickness 0.05)) (justify mirror))
     )
@@ -5812,11 +5812,11 @@
   )
 
   (module kicad-libraries:CE_5mm (layer Rückseite) (tedit 5922FFD4) (tstamp 54F90DBB)
-    (at 147.8 100.6)
-    (fp_text reference VAL (at 0 0) (layer B.SilkS) hide
+    (at 139.8 100.6 180)
+    (fp_text reference VAL (at 0 0 180) (layer B.SilkS) hide
       (effects (font (size 0.2 0.2) (thickness 0.05)) (justify mirror))
     )
-    (fp_text value CE_5mm (at 0 0) (layer B.SilkS) hide
+    (fp_text value CE_5mm (at 0 0 180) (layer B.SilkS) hide
       (effects (font (size 0.2 0.2) (thickness 0.05)) (justify mirror))
     )
     (fp_poly (pts (xy -0.55372 -1.67132) (xy -0.5715 -1.67386) (xy -0.57912 -1.6764) (xy -0.59436 -1.6764)
@@ -7116,7 +7116,7 @@
   (gr_text Status (at 150.8 117) (layer F.SilkS)
     (effects (font (size 0.8001 0.8001) (thickness 0.14986)))
   )
-  (gr_text "Termination\noff - on" (at 155.8 84.7) (layer F.SilkS)
+  (gr_text "Termination\nOff - On" (at 155.8 84.7) (layer F.SilkS)
     (effects (font (size 0.8 0.8) (thickness 0.15)))
   )
   (gr_text "CAN-L  CAN-H   GND" (at 169.1 101 90) (layer F.SilkS)
