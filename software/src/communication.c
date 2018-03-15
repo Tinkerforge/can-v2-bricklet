@@ -251,8 +251,8 @@ BootloaderHandleMessageResponse get_error_log_low_level(const GetErrorLogLowLeve
 	response->transceiver_state                          = tfcan.transceiver_state;
 	response->transceiver_write_error_level              = tfcan.transceiver_tx_error_level;
 	response->transceiver_read_error_level               = tfcan.transceiver_rx_error_level;
-	response->transceiver_stuff_error_count              = tfcan.transceiver_stuff_error_count;
-	response->transceiver_form_error_count               = tfcan.transceiver_form_error_count;
+	response->transceiver_stuffing_error_count           = tfcan.transceiver_stuffing_error_count;
+	response->transceiver_format_error_count             = tfcan.transceiver_format_error_count;
 	response->transceiver_ack_error_count                = tfcan.transceiver_ack_error_count;
 	response->transceiver_bit1_error_count               = tfcan.transceiver_bit1_error_count;
 	response->transceiver_bit0_error_count               = tfcan.transceiver_bit0_error_count;

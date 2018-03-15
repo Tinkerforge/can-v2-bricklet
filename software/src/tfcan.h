@@ -42,9 +42,9 @@ typedef enum {
 
 // must match Bricklet API TransceiverState enum
 typedef enum {
-	TFCAN_TRANSCEIVER_STATE_ERROR_ACTIVE = 0,
-	TFCAN_TRANSCEIVER_STATE_ERROR_PASSIVE,
-	TFCAN_TRANSCEIVER_STATE_BUS_OFF
+	TFCAN_TRANSCEIVER_STATE_ACTIVE = 0,
+	TFCAN_TRANSCEIVER_STATE_PASSIVE,
+	TFCAN_TRANSCEIVER_STATE_DISABLED
 } TFCAN_TransceiverState;
 
 // must match Bricklet API ErrorLEDConfig enum
@@ -57,12 +57,12 @@ typedef enum {
 } TFCAN_ErrorLEDConfig;
 
 typedef enum {
-	TFCAN_NODE_LEC_STUFF_ERROR = 0b001,
-	TFCAN_NODE_LEC_FORM_ERROR  = 0b010,
-	TFCAN_NODE_LEC_ACK_ERROR   = 0b011,
-	TFCAN_NODE_LEC_BIT1_ERROR  = 0b100,
-	TFCAN_NODE_LEC_BIT0_ERROR  = 0b101,
-	TFCAN_NODE_LEC_CRC_ERROR   = 0b110
+	TFCAN_NODE_LEC_STUFFING_ERROR = 0b001,
+	TFCAN_NODE_LEC_FORMAT_ERROR   = 0b010,
+	TFCAN_NODE_LEC_ACK_ERROR      = 0b011,
+	TFCAN_NODE_LEC_BIT1_ERROR     = 0b100,
+	TFCAN_NODE_LEC_BIT0_ERROR     = 0b101,
+	TFCAN_NODE_LEC_CRC_ERROR      = 0b110
 } TFCAN_NodeLEC;
 
 typedef struct {
@@ -127,8 +127,8 @@ typedef struct {
 	TFCAN_TransceiverState transceiver_state;
 	uint8_t transceiver_tx_error_level;
 	uint8_t transceiver_rx_error_level;
-	uint32_t transceiver_stuff_error_count;
-	uint32_t transceiver_form_error_count;
+	uint32_t transceiver_stuffing_error_count;
+	uint32_t transceiver_format_error_count;
 	uint32_t transceiver_ack_error_count;
 	uint32_t transceiver_bit1_error_count;
 	uint32_t transceiver_bit0_error_count;

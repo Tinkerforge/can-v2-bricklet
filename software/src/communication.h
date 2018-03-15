@@ -48,9 +48,9 @@ void communication_init(void);
 #define CAN_V2_FILTER_MODE_MATCH_EXTENDED_ONLY 2
 #define CAN_V2_FILTER_MODE_MATCH_STANDARD_AND_EXTENDED 3
 
-#define CAN_V2_TRANSCEIVER_STATE_ERROR_ACTIVE 0
-#define CAN_V2_TRANSCEIVER_STATE_ERROR_PASSIVE 1
-#define CAN_V2_TRANSCEIVER_STATE_BUS_OFF 2
+#define CAN_V2_TRANSCEIVER_STATE_ACTIVE 0
+#define CAN_V2_TRANSCEIVER_STATE_PASSIVE 1
+#define CAN_V2_TRANSCEIVER_STATE_DISABLED 2
 
 #define CAN_V2_COMMUNICATION_LED_CONFIG_OFF 0
 #define CAN_V2_COMMUNICATION_LED_CONFIG_ON 1
@@ -209,8 +209,8 @@ typedef struct {
 	uint8_t transceiver_state;
 	uint8_t transceiver_write_error_level;
 	uint8_t transceiver_read_error_level;
-	uint32_t transceiver_stuff_error_count;
-	uint32_t transceiver_form_error_count;
+	uint32_t transceiver_stuffing_error_count;
+	uint32_t transceiver_format_error_count;
 	uint32_t transceiver_ack_error_count;
 	uint32_t transceiver_bit1_error_count;
 	uint32_t transceiver_bit0_error_count;

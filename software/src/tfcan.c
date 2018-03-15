@@ -39,13 +39,13 @@ void IRQ_Hdlr_0(void) {
 		const uint8_t lec = (tfcan.node[i]->NSR & (uint32_t)CAN_NODE_NSR_LEC_Msk) >> CAN_NODE_NSR_LEC_Pos;
 
 		switch (lec) {
-			case TFCAN_NODE_LEC_STUFF_ERROR: error = true; ++tfcan.transceiver_stuff_error_count; break;
-			case TFCAN_NODE_LEC_FORM_ERROR:  error = true; ++tfcan.transceiver_form_error_count;  break;
-			case TFCAN_NODE_LEC_ACK_ERROR:   error = true; ++tfcan.transceiver_ack_error_count;   break;
-			case TFCAN_NODE_LEC_BIT1_ERROR:  error = true; ++tfcan.transceiver_bit1_error_count;  break;
-			case TFCAN_NODE_LEC_BIT0_ERROR:  error = true; ++tfcan.transceiver_bit0_error_count;  break;
-			case TFCAN_NODE_LEC_CRC_ERROR:   error = true; ++tfcan.transceiver_crc_error_count;   break;
-			default:                                                                break;
+			case TFCAN_NODE_LEC_STUFFING_ERROR: error = true; ++tfcan.transceiver_stuffing_error_count; break;
+			case TFCAN_NODE_LEC_FORMAT_ERROR:   error = true; ++tfcan.transceiver_format_error_count;   break;
+			case TFCAN_NODE_LEC_ACK_ERROR:      error = true; ++tfcan.transceiver_ack_error_count;      break;
+			case TFCAN_NODE_LEC_BIT1_ERROR:     error = true; ++tfcan.transceiver_bit1_error_count;     break;
+			case TFCAN_NODE_LEC_BIT0_ERROR:     error = true; ++tfcan.transceiver_bit0_error_count;     break;
+			case TFCAN_NODE_LEC_CRC_ERROR:      error = true; ++tfcan.transceiver_crc_error_count;      break;
+			default:                                                                                    break;
 		}
 	}
 
@@ -126,11 +126,11 @@ void tfcan_init(void) {
 	tfcan_reconfigure_transceiver();
 	tfcan_reconfigure_queues();
 
-	tfcan.transceiver_state = TFCAN_TRANSCEIVER_STATE_ERROR_ACTIVE;
+	tfcan.transceiver_state = TFCAN_TRANSCEIVER_STATE_ACTIVE;
 	tfcan.transceiver_tx_error_level = 0;
 	tfcan.transceiver_rx_error_level = 0;
-	tfcan.transceiver_stuff_error_count = 0;
-	tfcan.transceiver_form_error_count = 0;
+	tfcan.transceiver_stuffing_error_count = 0;
+	tfcan.transceiver_format_error_count = 0;
 	tfcan.transceiver_ack_error_count = 0;
 	tfcan.transceiver_bit1_error_count = 0;
 	tfcan.transceiver_bit0_error_count = 0;
@@ -400,15 +400,15 @@ void tfcan_tick(void) {
 	tfcan.transceiver_rx_error_level = (tfcan.node[0]->NECNT & (uint32_t)CAN_NODE_NECNT_REC_Msk) >> CAN_NODE_NECNT_REC_Pos;
 
 	if ((tfcan.node[0]->NSR & (uint32_t)CAN_NODE_NSR_BOFF_Msk) != 0) {
-		tfcan.transceiver_state = TFCAN_TRANSCEIVER_STATE_BUS_OFF; // FIXME: need to manually clear the INIT bit to recover from bus-off state?
+		tfcan.transceiver_state = TFCAN_TRANSCEIVER_STATE_DISABLED; // FIXME: need to manually clear the INIT bit to recover from bus-off state?
 	} else if (tfcan.transceiver_tx_error_level >= 128 || tfcan.transceiver_rx_error_level >= 128) {
-		tfcan.transceiver_state = TFCAN_TRANSCEIVER_STATE_ERROR_PASSIVE;
+		tfcan.transceiver_state = TFCAN_TRANSCEIVER_STATE_PASSIVE;
 	} else {
-		tfcan.transceiver_state = TFCAN_TRANSCEIVER_STATE_ERROR_ACTIVE;
+		tfcan.transceiver_state = TFCAN_TRANSCEIVER_STATE_ACTIVE;
 	}
 
 	if (tfcan.error_led_config == TFCAN_ERROR_LED_CONFIG_SHOW_TRANSCEIVER_STATE) {
-		if (tfcan.transceiver_state == TFCAN_TRANSCEIVER_STATE_ERROR_ACTIVE) {
+		if (tfcan.transceiver_state == TFCAN_TRANSCEIVER_STATE_ACTIVE) {
 			XMC_GPIO_SetOutputHigh(TFCAN_ERROR_LED_PIN);
 		} else {
 			XMC_GPIO_SetOutputLow(TFCAN_ERROR_LED_PIN);
