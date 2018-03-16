@@ -408,11 +408,17 @@ void tfcan_tick(void) {
 	tfcan.transceiver_rx_error_level = (tfcan.node[0]->NECNT & (uint32_t)CAN_NODE_NECNT_REC_Msk) >> CAN_NODE_NECNT_REC_Pos;
 
 	if ((tfcan.node[0]->NSR & (uint32_t)CAN_NODE_NSR_BOFF_Msk) != 0) {
-		tfcan.transceiver_state = TFCAN_TRANSCEIVER_STATE_DISABLED; // FIXME: need to manually clear the INIT bit to recover from bus-off state?
-	} else if (tfcan.transceiver_tx_error_level >= 128 || tfcan.transceiver_rx_error_level >= 128) {
-		tfcan.transceiver_state = TFCAN_TRANSCEIVER_STATE_PASSIVE;
+		tfcan.transceiver_state = TFCAN_TRANSCEIVER_STATE_DISABLED;
 	} else {
-		tfcan.transceiver_state = TFCAN_TRANSCEIVER_STATE_ACTIVE;
+		// the INIT bit is automatically set when the transceiver enters
+		// bus-off state, but the INIT bit is not automatically cleared again
+		tfcan.node[0]->NCR &= ~(uint32_t)CAN_NODE_NCR_INIT_Msk;
+
+		if (tfcan.transceiver_tx_error_level >= 128 || tfcan.transceiver_rx_error_level >= 128) {
+			tfcan.transceiver_state = TFCAN_TRANSCEIVER_STATE_PASSIVE;
+		} else {
+			tfcan.transceiver_state = TFCAN_TRANSCEIVER_STATE_ACTIVE;
+		}
 	}
 
 	if (tfcan.error_led_config == TFCAN_ERROR_LED_CONFIG_SHOW_TRANSCEIVER_STATE) {
