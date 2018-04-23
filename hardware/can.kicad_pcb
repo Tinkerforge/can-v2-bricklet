@@ -1,9 +1,9 @@
-(kicad_pcb (version 4) (host pcbnew 4.0.7-e2-6376~58~ubuntu17.04.1)
+(kicad_pcb (version 4) (host pcbnew 4.0.2+dfsg1-stable)
 
   (general
     (links 77)
     (no_connects 0)
-    (area 124.445139 82.245139 282.795857 162.890793)
+    (area 125.109499 82.909499 170.490501 118.290501)
     (thickness 1.6002)
     (drawings 16)
     (tracks 268)
@@ -6823,7 +6823,7 @@
       (net 6 3V3))
     (pad 2 smd rect (at 0.75 0 180) (size 0.9 0.9) (layers Vorderseite F.Paste F.Mask)
       (net 25 "Net-(D2-Pad2)"))
-    (model LED_SMD/D_0603_blue.wrl
+    (model LED_SMD/D_0603_yellow.wrl
       (at (xyz 0 0 0))
       (scale (xyz 1 1 1))
       (rotate (xyz -90 0 0))
@@ -6855,7 +6855,7 @@
       (net 6 3V3))
     (pad 2 smd rect (at 0.75 0 180) (size 0.9 0.9) (layers Vorderseite F.Paste F.Mask)
       (net 26 "Net-(D3-Pad2)"))
-    (model LED_SMD/D_0603_blue.wrl
+    (model LED_SMD/D_0603_red.wrl
       (at (xyz 0 0 0))
       (scale (xyz 1 1 1))
       (rotate (xyz -90 0 0))
