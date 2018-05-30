@@ -64,7 +64,7 @@ void tfcan_init(void) {
 	tfcan.reconfigure_rx_filters = 0;
 
 	tfcan.baud_rate = 125000; // config default
-	tfcan.sample_point = 8000;
+	tfcan.sample_point = 625; // config default
 	tfcan.sync_jump_width = 1;
 	tfcan.transceiver_mode = TFCAN_TRANSCEIVER_MODE_NORMAL; // config default
 
@@ -491,10 +491,10 @@ void tfcan_reconfigure_transceiver(void) {
 
 	// find best TSEG1 based on sample-point configuration
 	uint32_t best_tseg1 = 0;
-	uint32_t best_sample_point_error = 10000; // in 0.01 %
+	uint32_t best_sample_point_error = 1000; // in 0.1 %
 
 	for (uint32_t tseg1 = 16; tseg1 >= 3; --tseg1) {
-		const uint32_t sample_point = ((1 + tseg1) * 10000) / best_time_quanta;
+		const uint32_t sample_point = ((1 + tseg1) * 1000) / best_time_quanta;
 		uint32_t sample_point_error;
 
 		if (sample_point >= tfcan.sample_point) {

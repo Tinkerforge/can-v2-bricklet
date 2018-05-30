@@ -125,12 +125,14 @@ BootloaderHandleMessageResponse get_frame_read_callback_configuration(const GetF
 
 BootloaderHandleMessageResponse set_transceiver_configuration(const SetTransceiverConfiguration *data) {
 	if (data->baud_rate < 10000 || data->baud_rate > 1000000 ||
+	    data->sample_point < 500 || data->sample_point > 900 ||
 	    data->transceiver_mode > CAN_V2_TRANSCEIVER_MODE_READ_ONLY) {
 		return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
 	}
 
 	tfcan.reconfigure_transceiver = true;
 	tfcan.baud_rate               = data->baud_rate;
+	tfcan.sample_point            = data->sample_point;
 	tfcan.transceiver_mode        = data->transceiver_mode;
 
 	return HANDLE_MESSAGE_RESPONSE_EMPTY;
@@ -139,6 +141,7 @@ BootloaderHandleMessageResponse set_transceiver_configuration(const SetTransceiv
 BootloaderHandleMessageResponse get_transceiver_configuration(const GetTransceiverConfiguration *data, GetTransceiverConfiguration_Response *response) {
 	response->header.length    = sizeof(GetTransceiverConfiguration_Response);
 	response->baud_rate        = tfcan.baud_rate;
+	response->sample_point     = tfcan.sample_point;
 	response->transceiver_mode = tfcan.transceiver_mode;
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;

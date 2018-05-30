@@ -143,6 +143,7 @@ typedef struct {
 typedef struct {
 	TFPMessageHeader header;
 	uint32_t baud_rate;
+	uint16_t sample_point;
 	uint8_t transceiver_mode;
 } __attribute__((__packed__)) SetTransceiverConfiguration;
 
@@ -153,6 +154,7 @@ typedef struct {
 typedef struct {
 	TFPMessageHeader header;
 	uint32_t baud_rate;
+	uint16_t sample_point;
 	uint8_t transceiver_mode;
 } __attribute__((__packed__)) GetTransceiverConfiguration_Response;
 
