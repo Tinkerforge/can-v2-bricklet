@@ -1,7 +1,5 @@
 #!/usr/bin/perl
 
-# FIXME: This example is incomplete
-
 use strict;
 use Tinkerforge::IPConnection;
 use Tinkerforge::BrickletCANV2;
@@ -17,7 +15,7 @@ sub cb_frame_read
 
     print "Frame Type: $frame_type\n";
     print "Identifier: $identifier\n";
-    print "\n";
+    print "Data (Length: " . scalar @{$data} . "): " . join(" ", @{$data}[0..scalar @{$data} ) . "\n";
 }
 
 my $ipcon = Tinkerforge::IPConnection->new(); # Create IP connection
@@ -34,6 +32,10 @@ $can->register_callback($can->CALLBACK_FRAME_READ, 'cb_frame_read');
 
 # Enable frame read callback
 $can->set_frame_read_callback_configuration(1);
+
+# Write standard data frame with identifier 1742 and 3 bytes of data
+my $data = [42, 23, 17];
+$can->write_frame($can->FRAME_TYPE_STANDARD_DATA, 1742, $data);
 
 print "Press key to exit\n";
 <STDIN>;

@@ -1,7 +1,5 @@
 <!DOCTYPE html>
 
-<!-- FIXME: This example is incomplete -->
-
 <html>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <head>
@@ -50,6 +48,10 @@
 
                         // Enable frame read callback
                         can.setFrameReadCallbackConfiguration(true);
+
+                        // Write standard data frame with identifier 1742 and 3 bytes of data
+                        var data = [42, 23, 17];
+                        can.writeFrame(Tinkerforge.BrickletCAN.FRAME_TYPE_STANDARD_DATA, 1742, data);
                     }
                 );
 
@@ -59,6 +61,13 @@
                     function (frameType, identifier, data) {
                         textArea.value += 'Frame Type: ' + frameType + '\n';
                         textArea.value += 'Identifier: ' + identifier + '\n';
+
+                        textArea.value += 'Data (Length: ' + data.length + '):';
+
+                        data.forEach(function(d) {
+                            textArea.value += ' ' + d;
+                        });
+
                         textArea.value += '\n';
                         textArea.scrollTop = textArea.scrollHeight;
                     }

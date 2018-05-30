@@ -1,8 +1,6 @@
 function octave_example_loopback()
     more off;
 
-    % FIXME: This example is incomplete
-
     HOST = "localhost";
     PORT = 4223;
     UID = "XYZ"; % Change XYZ to the UID of your CAN Bricklet 2.0
@@ -22,6 +20,10 @@ function octave_example_loopback()
     % Enable frame read callback
     can.setFrameReadCallbackConfiguration(true);
 
+    % Write standard data frame with identifier 1742 and 3 bytes of data
+    data = [42, 23, 17];
+    can.writeFrame(can.FRAME_TYPE_STANDARD_DATA, 1742, data);
+
     input("Press key to exit\n", "s");
     can.setFrameReadCallbackConfiguration(false);
     ipcon.disconnect();
@@ -31,6 +33,12 @@ end
 function cb_frame_read(e)
     fprintf("Frame Type: %d\n", e.frameType);
     fprintf("Identifier: %d\n", java2int(e.identifier));
+    fprintf("Data (Length: %d):", e.data.length);
+
+    for i = 1:e.data.length
+        fprintf(" %d", java2int(data(i)));
+    end
+
     fprintf("\n");
 end
 

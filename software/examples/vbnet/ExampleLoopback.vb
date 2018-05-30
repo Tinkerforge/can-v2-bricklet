@@ -1,8 +1,6 @@
 Imports System
 Imports Tinkerforge
 
-' FIXME: This example is incomplete
-
 Module ExampleLoopback
     Const HOST As String = "localhost"
     Const PORT As Integer = 4223
@@ -13,7 +11,13 @@ Module ExampleLoopback
                     ByVal identifier As Long, ByVal data As Byte())
         Console.WriteLine("Frame Type: " + frameType.ToString())
         Console.WriteLine("Identifier: " + identifier.ToString())
-        Console.WriteLine("")
+
+        Dim s As String = "Data (Length: " & data.Length & "):"
+
+        For Each d As Byte In data
+            s &= " " + d.ToString()
+        Next
+        Console.WriteLine(s)
     End Sub
 
     Sub Main()
@@ -32,6 +36,10 @@ Module ExampleLoopback
 
         ' Enable frame read callback
         can.SetFrameReadCallbackConfiguration(True)
+
+        ' Write standard data frame with identifier 1742 and 3 bytes of data
+        Dim data As Byte() = {42, 23, 17}
+        can.WriteFrame(BrickletCAN.FRAME_TYPE_STANDARD_DATA, 1742, data)
 
         Console.WriteLine("Press key to exit")
         Console.ReadLine()

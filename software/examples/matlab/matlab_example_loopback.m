@@ -2,8 +2,6 @@ function matlab_example_loopback()
     import com.tinkerforge.IPConnection;
     import com.tinkerforge.BrickletCANV2;
 
-    % FIXME: This example is incomplete
-
     HOST = 'localhost';
     PORT = 4223;
     UID = 'XYZ'; % Change XYZ to the UID of your CAN Bricklet 2.0
@@ -24,6 +22,10 @@ function matlab_example_loopback()
     % Enable frame read callback
     can.setFrameReadCallbackConfiguration(true);
 
+    % Write standard data frame with identifier 1742 and 3 bytes of data
+    data = [42, 23, 17];
+    can.writeFrame(BrickletCAN.FRAME_TYPE_STANDARD_DATA, 1742, data);
+
     input('Press key to exit\n', 's');
     can.setFrameReadCallbackConfiguration(false);
     ipcon.disconnect();
@@ -33,5 +35,12 @@ end
 function cb_frame_read(e)
     fprintf('Frame Type: %i\n', e.frameType);
     fprintf('Identifier: %i\n', e.identifier);
+
+    fprintf('Data (Length: %d):', e.data.length);
+
+    for i = 1:e.data.length
+        fprintf(' %d', e.data(i));
+    end
+
     fprintf('\n');
 end

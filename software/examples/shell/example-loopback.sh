@@ -1,8 +1,6 @@
 #!/bin/sh
 # Connects to localhost:4223 by default, use --host and --port to change this
 
-# FIXME: This example is incomplete
-
 uid=XYZ # Change XYZ to the UID of your CAN Bricklet 2.0
 
 # Configure transceiver for loopback mode
@@ -13,6 +11,9 @@ tinkerforge dispatch can-v2-bricklet $uid frame-read &
 
 # Enable frame read callback
 tinkerforge call can-v2-bricklet $uid set-frame-read-callback-configuration true
+
+# Write standard data frame with identifier 1742 and 3 bytes of data
+tinkerforge call can-bricklet $uid write-frame frame-type-standard-data 1742 42,23,1,..
 
 echo "Press key to exit"; read dummy
 

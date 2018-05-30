@@ -1,8 +1,6 @@
 #!/usr/bin/env ruby
 # -*- ruby encoding: utf-8 -*-
 
-# FIXME: This example is incomplete
-
 require 'tinkerforge/ip_connection'
 require 'tinkerforge/bricklet_can_v2'
 
@@ -26,11 +24,14 @@ can.register_callback(BrickletCANV2::CALLBACK_FRAME_READ) do |frame_type, identi
                                                               data|
   puts "Frame Type: #{frame_type}"
   puts "Identifier: #{identifier}"
-  puts ''
+  puts "Data (Length: #{data.length}): #{data.join(' ')}"
 end
 
 # Enable frame read callback
 can.set_frame_read_callback_configuration true
+
+# Write standard data frame with identifier 1742 and 3 bytes of data
+can.write_frame BrickletCAN::FRAME_TYPE_STANDARD_DATA, 1742, [42, 23, 17]
 
 puts 'Press key to exit'
 $stdin.gets

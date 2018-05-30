@@ -1,8 +1,6 @@
 using System;
 using Tinkerforge;
 
-// FIXME: This example is incomplete
-
 class Example
 {
 	private static string HOST = "localhost";
@@ -15,7 +13,14 @@ class Example
 	{
 		Console.WriteLine("Frame Type: " + frameType);
 		Console.WriteLine("Identifier: " + identifier);
-		Console.WriteLine("");
+
+		string s = "Data (Length: " + data.Length + "):";
+
+		foreach (byte d in data) {
+			s += " " + d;
+		}
+
+		Console.WriteLine(s);
 	}
 
 	static void Main()
@@ -35,6 +40,10 @@ class Example
 
 		// Enable frame read callback
 		can.SetFrameReadCallbackConfiguration(true);
+
+		// Write standard data frame with identifier 1742 and 3 bytes of data
+		byte[] data = new byte[3]{42, 23, 17};
+		can.WriteFrame(BrickletCAN.FRAME_TYPE_STANDARD_DATA, 1742, data);
 
 		Console.WriteLine("Press enter to exit");
 		Console.ReadLine();

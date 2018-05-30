@@ -1,7 +1,5 @@
 program ExampleLoopback;
 
-{ FIXME: This example is incomplete }
-
 {$ifdef MSWINDOWS}{$apptype CONSOLE}{$endif}
 {$ifdef FPC}{$mode OBJFPC}{$H+}{$endif}
 
@@ -33,10 +31,18 @@ procedure TExample.FrameReadCB(sender: TBrickletCANV2; const frameType: byte;
 begin
   WriteLn(Format('Frame Type: %d', [frameType]));
   WriteLn(Format('Identifier: %d', [identifier]));
+  Write(Format('Data (Length: %d):', length(data)));
+
+  for d in data do
+    Write(Format(' %d', d));
+  end;
+
   WriteLn('');
 end;
 
 procedure TExample.Execute;
+var
+  data: array of Byte;
 begin
   { Create IP connection }
   ipcon := TIPConnection.Create;
@@ -57,6 +63,15 @@ begin
 
   { Enable frame read callback }
   can.SetFrameReadCallbackConfiguration(true);
+
+  { Write standard data frame with identifier 1742 and 3 bytes of data }
+  SetLength(data, 3);
+
+  data[0] := 42;
+  data[1] := 23;
+  data[2] := 17;
+
+  can.WriteFrame(BRICKLET_CAN_FRAME_TYPE_STANDARD_DATA, 1742, data);
 
   WriteLn('Press key to exit');
   ReadLn;

@@ -1,7 +1,5 @@
 var Tinkerforge = require('tinkerforge');
 
-// FIXME: This example is incomplete
-
 var HOST = 'localhost';
 var PORT = 4223;
 var UID = 'XYZ'; // Change XYZ to the UID of your CAN Bricklet 2.0
@@ -24,6 +22,10 @@ ipcon.on(Tinkerforge.IPConnection.CALLBACK_CONNECTED,
 
         // Enable frame read callback
         can.setFrameReadCallbackConfiguration(true);
+
+        // Write standard data frame with identifier 1742 and 3 bytes of data
+        var data = [42, 23, 17];
+        can.writeFrame(Tinkerforge.BrickletCAN.FRAME_TYPE_STANDARD_DATA, 1742, data);
     }
 );
 
@@ -33,6 +35,13 @@ can.on(Tinkerforge.BrickletCANV2.CALLBACK_FRAME_READ,
     function (frameType, identifier, data) {
         console.log('Frame Type: ' + frameType);
         console.log('Identifier: ' + identifier);
+
+        console.log('Data (Length: ' + data.length + '):');
+
+        data.forEach(function(d) {
+            console.log(' ' + d);
+        });
+
         console.log();
     }
 );

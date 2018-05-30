@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# FIXME: This example is incomplete
-
 HOST = "localhost"
 PORT = 4223
 UID = "XYZ" # Change XYZ to the UID of your CAN Bricklet 2.0
@@ -14,7 +12,7 @@ from tinkerforge.bricklet_can_v2 import BrickletCANV2
 def cb_frame_read(frame_type, identifier, data):
     print("Frame Type: " + str(frame_type))
     print("Identifier: " + str(identifier))
-    print("")
+    print("Data (Length: " + len(data) + "): " + ", ".join(map(str, data[:len(data)])))
 
 if __name__ == "__main__":
     ipcon = IPConnection() # Create IP connection
@@ -31,6 +29,9 @@ if __name__ == "__main__":
 
     # Enable frame read callback
     can.set_frame_read_callback_configuration(True)
+
+    # Write standard data frame with identifier 1742 and 3 bytes of data
+    can.write_frame(can.FRAME_TYPE_STANDARD_DATA, 1742, [42, 23, 17])
 
     raw_input("Press key to exit\n") # Use input() in Python 3
     can.set_frame_read_callback_configuration(False)
