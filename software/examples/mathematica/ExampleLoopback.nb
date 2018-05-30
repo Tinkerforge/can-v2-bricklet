@@ -1,0 +1,49 @@
+Notebook[{
+ Cell[
+  BoxData[{
+   RowBox[{"Needs", "[", "\"\<NETLink`\>\"", "]"}],
+   RowBox[{"LoadNETAssembly", "[", RowBox[{"\"\<Tinkerforge\>\"", ",", RowBox[{RowBox[{"NotebookDirectory", "[", "]"}], "<>", "\"\<../../..\>\""}]}], "]"}]
+  }], "Input"
+ ],
+ Cell[
+  BoxData[{
+   RowBox[{"(*", "FIXME: This example is incomplete", "*)"}],
+   RowBox[{"
+"}],
+   RowBox[{"host", "=", "\"\<localhost\>\""}],
+   RowBox[{"port", "=", "4223"}],
+   RowBox[{"uid", "=", "\"\<XYZ\>\"", RowBox[{"(*", "Change XYZ to the UID of your CAN Bricklet 2.0", "*)"}]}],
+   RowBox[{"
+"}],
+   RowBox[{"(*", "Create IPConnection and device object", "*)"}],
+   RowBox[{"ipcon", "=", RowBox[{"NETNew", "[", "\"\<Tinkerforge.IPConnection\>\"", "]"}]}],
+   RowBox[{"can", "=", RowBox[{"NETNew", "[", RowBox[{"\"\<Tinkerforge.BrickletCANV2\>\"", ",", "uid", ",", "ipcon"}], "]"}]}],
+   RowBox[{"ipcon", "@", RowBox[{"Connect", "[", RowBox[{"host", ",", "port"}], "]"}]}],
+   RowBox[{"
+"}],
+   RowBox[{"(*", "Configure transceiver for loopback mode", "*)"}],
+   RowBox[{"can", "@", RowBox[{"SetTransceiverConfiguration", "[", RowBox[{"1000000", ",", "625", ",", RowBox[{"\[IndentingNewLine]", "Tinkerforge`BrickletCANV2`TRANSCEIVERUMODEULOOPBACK"}]}], "]"}]}],
+   RowBox[{"
+"}],
+   RowBox[{"(*", "Callback function for frame read callback", "*)"}],
+   RowBox[{RowBox[{"FrameReadCB", "[", RowBox[{"sender_", ",", "frameType_", ",", "identifier_", ",", "FIXME_"}], "]"}], ":=", "\[IndentingNewLine]", RowBox[{"Module", "[", RowBox[{RowBox[{"{", "}"}], ",", RowBox[{"\[IndentingNewLine]", RowBox[{"Print", "[", RowBox[{"\"\<Frame Type: \>\"", "<>", RowBox[{"ToString", "[", "frameType", "]"}]}], "]"}], ";", "\[IndentingNewLine]", RowBox[{"Print", "[", RowBox[{"\"\<Identifier: \>\"", "<>", RowBox[{"ToString", "[", "identifier", "]"}]}], "]"}], "\[IndentingNewLine]"}]}], "]"}]}],
+   RowBox[{"
+"}],
+   RowBox[{"AddEventHandler", "[", RowBox[{RowBox[{"can", "@", "FrameReadCallback"}], ",", "FrameReadCB"}], "]"}],
+   RowBox[{"
+"}],
+   RowBox[{"(*", "Enable frame read callback", "*)"}],
+   RowBox[{"can", "@", RowBox[{"SetFrameReadCallbackConfiguration", "[", "True", "]"}]}],
+   RowBox[{"
+"}],
+   RowBox[{"Input", "[", "\"\<Click OK to exit\>\"", "]"}],
+   RowBox[{"
+"}],
+   RowBox[{"(*", "Clean up", "*)"}],
+   RowBox[{"can", "@", RowBox[{"SetFrameReadCallbackConfiguration", "[", "False", "]"}]}],
+   RowBox[{"ipcon", "@", RowBox[{"Disconnect", "[", "]"}]}],
+   RowBox[{"ReleaseNETObject", "[", "can", "]"}],
+   RowBox[{"ReleaseNETObject", "[", "ipcon", "]"}]
+  }], "Input"
+ ]
+}]

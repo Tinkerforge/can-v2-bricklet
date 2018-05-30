@@ -1,0 +1,37 @@
+Needs["NETLink`"]
+LoadNETAssembly["Tinkerforge",NotebookDirectory[]<>"../../.."]
+
+(*FIXME: This example is incomplete*)
+
+host="localhost"
+port=4223
+uid="XYZ"(*Change XYZ to the UID of your CAN Bricklet 2.0*)
+
+(*Create IPConnection and device object*)
+ipcon=NETNew["Tinkerforge.IPConnection"]
+can=NETNew["Tinkerforge.BrickletCANV2",uid,ipcon]
+ipcon@Connect[host,port]
+
+(*Configure transceiver for loopback mode*)
+can@SetTransceiverConfiguration[1000000,625,
+                                Tinkerforge`BrickletCANV2`TRANSCEIVERUMODEULOOPBACK]
+
+(*Callback function for frame read callback*)
+FrameReadCB[sender_,frameType_,identifier_,FIXME_]:=
+ Module[{},
+  Print["Frame Type: "<>ToString[frameType]];
+  Print["Identifier: "<>ToString[identifier]]
+ ]
+
+AddEventHandler[can@FrameReadCallback,FrameReadCB]
+
+(*Enable frame read callback*)
+can@SetFrameReadCallbackConfiguration[True]
+
+Input["Click OK to exit"]
+
+(*Clean up*)
+can@SetFrameReadCallbackConfiguration[False]
+ipcon@Disconnect[]
+ReleaseNETObject[can]
+ReleaseNETObject[ipcon]
