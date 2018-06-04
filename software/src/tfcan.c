@@ -522,7 +522,7 @@ void tfcan_reconfigure_transceiver(void) {
 	                      (((uint32_t)(tfcan.sync_jump_width - 1) << CAN_NODE_NBTR_SJW_Pos)   & (uint32_t)CAN_NODE_NBTR_SJW_Msk) |
 	                      (((uint32_t)(best_tseg1 - 1)            << CAN_NODE_NBTR_TSEG1_Pos) & (uint32_t)CAN_NODE_NBTR_TSEG1_Msk) |
 	                      (((uint32_t)(best_tseg2 - 1)            << CAN_NODE_NBTR_TSEG2_Pos) & (uint32_t)CAN_NODE_NBTR_TSEG2_Msk) |
-	                      (((uint32_t)(best_div != 0 ? 1 : 0)     << CAN_NODE_NBTR_DIV8_Pos)  & (uint32_t)CAN_NODE_NBTR_DIV8_Msk);
+	                      (((uint32_t)(best_div == 8 ? 1 : 0)     << CAN_NODE_NBTR_DIV8_Pos)  & (uint32_t)CAN_NODE_NBTR_DIV8_Msk);
 
 	for (uint8_t i = 0; i < TFCAN_NODE_SIZE; ++i) {
 		// bit-timing
