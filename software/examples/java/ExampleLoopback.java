@@ -41,8 +41,8 @@ public class ExampleLoopback {
 		can.setFrameReadCallbackConfiguration(true);
 
 		// Write standard data frame with identifier 1742 and 3 bytes of data
-		short[] data = new short[3]{42, 23, 17};
-		can.writeFrame(BrickletCAN.FRAME_TYPE_STANDARD_DATA, (short)1742, data);
+		int[] data = new int[]{42, 23, 17};
+		can.writeFrame(BrickletCANV2.FRAME_TYPE_STANDARD_DATA, 1742, data);
 
 		System.out.println("Press key to exit"); System.in.read();
 		can.setFrameReadCallbackConfiguration(false);

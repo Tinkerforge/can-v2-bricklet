@@ -13,7 +13,7 @@ tinkerforge dispatch can-v2-bricklet $uid frame-read &
 tinkerforge call can-v2-bricklet $uid set-frame-read-callback-configuration true
 
 # Write standard data frame with identifier 1742 and 3 bytes of data
-tinkerforge call can-bricklet $uid write-frame frame-type-standard-data 1742 42,23,1,..
+tinkerforge call can-v2-bricklet $uid write-frame frame-type-standard-data 1742 42,23,1
 
 echo "Press key to exit"; read dummy
 

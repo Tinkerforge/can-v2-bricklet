@@ -14,13 +14,14 @@ void cb_frame_read(uint8_t frame_type, uint32_t identifier,
 
 	printf("Frame Type: %u\n", frame_type);
 	printf("Identifier: %u\n", identifier);
-	printf("Data (Length: %d):", length);
+	printf("Data (Length: %d):", data_length);
 
 	uint8_t i;
-	for (i = 0; i < data_length; ++i) {
+	for (i = 0; i < data_length && i < 8; ++i) {
 		printf(" %d", data[i]);
 	}
 
+	printf("\n");
 	printf("\n");
 }
 
@@ -56,7 +57,7 @@ int main(void) {
 	// Write standard data frame with identifier 1742 and 3 bytes of data
 	uint8_t data[3] = {42, 23, 17};
 	bool success;
-	can_write_frame(&can, CAN_FRAME_TYPE_STANDARD_DATA, 1742, data, 3, &success);
+	can_v2_write_frame(&can, CAN_V2_FRAME_TYPE_STANDARD_DATA, 1742, data, 3, &success);
 
 	printf("Press key to exit\n");
 	getchar();

@@ -36,6 +36,11 @@ Notebook[{
    RowBox[{"can", "@", RowBox[{"SetFrameReadCallbackConfiguration", "[", "True", "]"}]}],
    RowBox[{"
 "}],
+   RowBox[{"(*", "Write standard data frame with identifier 1742 and 3 bytes of data", "*)"}],
+   RowBox[{"data", "=", RowBox[{"{", RowBox[{"42", ",", "23", ",", "17"}], "}"}]}],
+   RowBox[{"can", "@", RowBox[{"WriteFrame", "[", RowBox[{"Tinkerforge`BrickletCANV2`FRAMEUTYPEUSTANDARDUDATA", ",", "1742", ",", "data"}], "]"}]}],
+   RowBox[{"
+"}],
    RowBox[{"Input", "[", "\"\<Click OK to exit\>\"", "]"}],
    RowBox[{"
 "}],

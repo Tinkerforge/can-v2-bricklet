@@ -41,7 +41,7 @@ $can->setFrameReadCallbackConfiguration(TRUE);
 
 // Write standard data frame with identifier 1742 and 3 bytes of data
 $data = [42, 23, 17];
-$can->writeFrame(BrickletCAN::FRAME_TYPE_STANDARD_DATA, 1742, $data);
+$can->writeFrame(BrickletCANV2::FRAME_TYPE_STANDARD_DATA, 1742, $data);
 
 echo "Press ctrl+c to exit\n";
 $ipcon->dispatchCallbacks(-1); // Dispatch callbacks forever

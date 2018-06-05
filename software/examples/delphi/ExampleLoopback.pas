@@ -41,8 +41,7 @@ begin
 end;
 
 procedure TExample.Execute;
-var
-  data: array of Byte;
+var data: TArrayOfUInt8;
 begin
   { Create IP connection }
   ipcon := TIPConnection.Create;
@@ -66,12 +65,8 @@ begin
 
   { Write standard data frame with identifier 1742 and 3 bytes of data }
   SetLength(data, 3);
-
-  data[0] := 42;
-  data[1] := 23;
-  data[2] := 17;
-
-  can.WriteFrame(BRICKLET_CAN_FRAME_TYPE_STANDARD_DATA, 1742, data);
+  data[0] := 42; data[1] := 23; data[2] := 17;
+  can.WriteFrame(BRICKLET_CAN_V2_FRAME_TYPE_STANDARD_DATA, 1742, data);
 
   WriteLn('Press key to exit');
   ReadLn;

@@ -31,7 +31,7 @@ end
 can.set_frame_read_callback_configuration true
 
 # Write standard data frame with identifier 1742 and 3 bytes of data
-can.write_frame BrickletCAN::FRAME_TYPE_STANDARD_DATA, 1742, [42, 23, 17]
+can.write_frame BrickletCANV2::FRAME_TYPE_STANDARD_DATA, 1742, [42, 23, 17]
 
 puts 'Press key to exit'
 $stdin.gets
