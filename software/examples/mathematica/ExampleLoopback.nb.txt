@@ -1,8 +1,6 @@
 Needs["NETLink`"]
 LoadNETAssembly["Tinkerforge",NotebookDirectory[]<>"../../.."]
 
-(*FIXME: This example is incomplete*)
-
 host="localhost"
 port=4223
 uid="XYZ"(*Change XYZ to the UID of your CAN Bricklet 2.0*)
@@ -17,10 +15,11 @@ can@SetTransceiverConfiguration[1000000,625,
                                 Tinkerforge`BrickletCANV2`TRANSCEIVERUMODEULOOPBACK]
 
 (*Callback function for frame read callback*)
-FrameReadCB[sender_,frameType_,identifier_,FIXME_]:=
+FrameReadCB[sender_,frameType_,identifier_,data_]:=
  Module[{},
   Print["Frame Type: "<>ToString[frameType]];
-  Print["Identifier: "<>ToString[identifier]]
+  Print["Identifier: "<>ToString[identifier]];
+  Print["Data (Length: "<>ToString[N[Length[data]]]<>"): "<>ToString[data]]
  ]
 
 AddEventHandler[can@FrameReadCallback,FrameReadCB]

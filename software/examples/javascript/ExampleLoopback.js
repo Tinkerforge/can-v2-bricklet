@@ -36,12 +36,12 @@ can.on(Tinkerforge.BrickletCANV2.CALLBACK_FRAME_READ,
         console.log('Frame Type: ' + frameType);
         console.log('Identifier: ' + identifier);
 
-        console.log('Data (Length: ' + data.length + '):');
+        var str = 'Data (Length: ' + data.length  + '):';
+        for (var i = 0; i < data.length  && i < 8; ++i) {
+            str += ' ' + data[i];
+        }
 
-        data.forEach(function(d) {
-            console.log(' ' + d);
-        });
-
+        console.log(str);
         console.log();
     }
 );

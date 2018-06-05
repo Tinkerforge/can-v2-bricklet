@@ -26,14 +26,14 @@ public class ExampleLoopback {
 			public void frameRead(int frameType, long identifier, int[] data) {
 				System.out.println("Frame Type: " + frameType);
 				System.out.println("Identifier: " + identifier);
+				System.out.print("Data (Length: " + data.length + "):");
 
-				String str = "Data (Length: " + data.length + "):";
-
-				for(byte d : data) {
-					str += " " + d;
+				for (int i = 0; i < data.length && i < 8; ++i) {
+					System.out.print(" " + data[i]);
 				}
 
-				System.out.println(str);
+				System.out.println("");
+				System.out.println("");
 			}
 		});
 

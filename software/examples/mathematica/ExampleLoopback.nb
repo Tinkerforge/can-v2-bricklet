@@ -7,9 +7,6 @@ Notebook[{
  ],
  Cell[
   BoxData[{
-   RowBox[{"(*", "FIXME: This example is incomplete", "*)"}],
-   RowBox[{"
-"}],
    RowBox[{"host", "=", "\"\<localhost\>\""}],
    RowBox[{"port", "=", "4223"}],
    RowBox[{"uid", "=", "\"\<XYZ\>\"", RowBox[{"(*", "Change XYZ to the UID of your CAN Bricklet 2.0", "*)"}]}],
@@ -26,7 +23,7 @@ Notebook[{
    RowBox[{"
 "}],
    RowBox[{"(*", "Callback function for frame read callback", "*)"}],
-   RowBox[{RowBox[{"FrameReadCB", "[", RowBox[{"sender_", ",", "frameType_", ",", "identifier_", ",", "FIXME_"}], "]"}], ":=", "\[IndentingNewLine]", RowBox[{"Module", "[", RowBox[{RowBox[{"{", "}"}], ",", RowBox[{"\[IndentingNewLine]", RowBox[{"Print", "[", RowBox[{"\"\<Frame Type: \>\"", "<>", RowBox[{"ToString", "[", "frameType", "]"}]}], "]"}], ";", "\[IndentingNewLine]", RowBox[{"Print", "[", RowBox[{"\"\<Identifier: \>\"", "<>", RowBox[{"ToString", "[", "identifier", "]"}]}], "]"}], "\[IndentingNewLine]"}]}], "]"}]}],
+   RowBox[{RowBox[{"FrameReadCB", "[", RowBox[{"sender_", ",", "frameType_", ",", "identifier_", ",", "data_"}], "]"}], ":=", "\[IndentingNewLine]", RowBox[{"Module", "[", RowBox[{RowBox[{"{", "}"}], ",", RowBox[{"\[IndentingNewLine]", RowBox[{"Print", "[", RowBox[{"\"\<Frame Type: \>\"", "<>", RowBox[{"ToString", "[", "frameType", "]"}]}], "]"}], ";", "\[IndentingNewLine]", RowBox[{"Print", "[", RowBox[{"\"\<Identifier: \>\"", "<>", RowBox[{"ToString", "[", "identifier", "]"}]}], "]"}], ";", "\[IndentingNewLine]", RowBox[{"Print", "[", RowBox[{"\"\<Data (Length: \>\"", "<>", RowBox[{"ToString", "[", RowBox[{"N", "[", RowBox[{"Length", "[", "data", "]"}], "]"}], "]"}], "<>", "\"\<): \>\"", "<>", RowBox[{"ToString", "[", "data", "]"}]}], "]"}], "\[IndentingNewLine]"}]}], "]"}]}],
    RowBox[{"
 "}],
    RowBox[{"AddEventHandler", "[", RowBox[{RowBox[{"can", "@", "FrameReadCallback"}], ",", "FrameReadCB"}], "]"}],

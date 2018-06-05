@@ -61,12 +61,11 @@
                     function (frameType, identifier, data) {
                         textArea.value += 'Frame Type: ' + frameType + '\n';
                         textArea.value += 'Identifier: ' + identifier + '\n';
-
                         textArea.value += 'Data (Length: ' + data.length + '):';
 
-                        data.forEach(function(d) {
-                            textArea.value += ' ' + d;
-                        });
+                        for (var i = 0; i < data.length && i < 8; ++i) {
+                            textArea.value += ' ' + data[i];
+                        }
 
                         textArea.value += '\n';
                         textArea.scrollTop = textArea.scrollHeight;

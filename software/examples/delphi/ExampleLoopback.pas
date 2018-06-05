@@ -28,15 +28,17 @@ var
 { Callback procedure for frame read callback }
 procedure TExample.FrameReadCB(sender: TBrickletCANV2; const frameType: byte;
                                const identifier: longword; const data: TArrayOfUInt8);
+var i: integer;
 begin
   WriteLn(Format('Frame Type: %d', [frameType]));
   WriteLn(Format('Identifier: %d', [identifier]));
-  Write(Format('Data (Length: %d):', length(data)));
-
-  for d in data do
-    Write(Format(' %d', d));
+  Write(Format('Data (Length: %d):', [Length(data)]));
+  for i := 0 to (Length(data) - 1) do begin
+    if i < 8 then begin
+      Write(Format(' %d', [data[i]]));
+    end;
   end;
-
+  WriteLn('');
   WriteLn('');
 end;
 

@@ -12,7 +12,8 @@ from tinkerforge.bricklet_can_v2 import BrickletCANV2
 def cb_frame_read(frame_type, identifier, data):
     print("Frame Type: " + str(frame_type))
     print("Identifier: " + str(identifier))
-    print("Data (Length: " + len(data) + "): " + ", ".join(map(str, data[:len(data)])))
+    print("Data (Length: " + str(len(data)) + "): " + ", ".join(map(str, data[:min(len(data), 8)])))
+    print("")
 
 if __name__ == "__main__":
     ipcon = IPConnection() # Create IP connection

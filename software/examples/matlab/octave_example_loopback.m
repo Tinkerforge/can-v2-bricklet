@@ -31,14 +31,15 @@ end
 
 % Callback function for frame read callback
 function cb_frame_read(e)
-    fprintf("Frame Type: %d\n", e.frameType);
+    fprintf("Frame Type: %d\n", java2int(e.frameType));
     fprintf("Identifier: %d\n", java2int(e.identifier));
     fprintf("Data (Length: %d):", e.data.length);
 
-    for i = 1:e.data.length
-        fprintf(" %d", java2int(data(i)));
+    for i = 1:min(e.data.length, 8)
+        fprintf(" %d", java2int(e.data(i)));
     end
 
+    fprintf("\n");
     fprintf("\n");
 end
 

@@ -9,15 +9,17 @@ Module ExampleLoopback
     ' Callback subroutine for frame read callback
     Sub FrameReadCB(ByVal sender As BrickletCANV2, ByVal frameType As Byte, _
                     ByVal identifier As Long, ByVal data As Byte())
-        Console.WriteLine("Frame Type: " + frameType.ToString())
-        Console.WriteLine("Identifier: " + identifier.ToString())
+        Console.WriteLine("Frame Type: {0}", frameType)
+        Console.WriteLine("Identifier: {0}", identifier)
+        Console.Write("Data (Length: {0}):", data.Length)
 
-        Dim s As String = "Data (Length: " & data.Length & "):"
+        Dim i As Integer
+        For i = 0 To Math.Min(data.Length - 1, 7)
+            Console.Write(" " + data(i).ToString())
+        Next i
 
-        For Each d As Byte In data
-            s &= " " + d.ToString()
-        Next
-        Console.WriteLine(s)
+        Console.WriteLine("")
+        Console.WriteLine("")
     End Sub
 
     Sub Main()
