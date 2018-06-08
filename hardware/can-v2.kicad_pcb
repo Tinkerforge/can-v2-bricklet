@@ -1,9 +1,9 @@
-(kicad_pcb (version 4) (host pcbnew 4.0.2+dfsg1-stable)
+(kicad_pcb (version 4) (host pcbnew 4.0.7-e2-6376~61~ubuntu18.04.1)
 
   (general
     (links 77)
     (no_connects 0)
-    (area 125.109499 82.909499 170.490501 118.290501)
+    (area 124.445139 82.245139 282.795857 162.890793)
     (thickness 1.6002)
     (drawings 16)
     (tracks 268)
@@ -7116,7 +7116,7 @@
   (gr_text Status (at 150.8 117) (layer F.SilkS)
     (effects (font (size 0.8001 0.8001) (thickness 0.14986)))
   )
-  (gr_text "Termination\nOff - On" (at 155.8 84.7) (layer F.SilkS)
+  (gr_text "Termination\nOn - Off" (at 155.8 84.7) (layer F.SilkS)
     (effects (font (size 0.8 0.8) (thickness 0.15)))
   )
   (gr_text "CAN-L  CAN-H   GND" (at 169.1 101 90) (layer F.SilkS)
