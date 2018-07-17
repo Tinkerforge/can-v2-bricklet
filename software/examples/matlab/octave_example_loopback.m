@@ -21,8 +21,7 @@ function octave_example_loopback()
     can.setFrameReadCallbackConfiguration(true);
 
     % Write standard data frame with identifier 1742 and 3 bytes of data
-    data = [42, 23, 17];
-    can.writeFrame(can.FRAME_TYPE_STANDARD_DATA, 1742, data);
+    can.writeFrame(can.FRAME_TYPE_STANDARD_DATA, 1742, [42 23 17]);
 
     input("Press key to exit\n", "s");
     can.setFrameReadCallbackConfiguration(false);
@@ -31,7 +30,7 @@ end
 
 % Callback function for frame read callback
 function cb_frame_read(e)
-    fprintf("Frame Type: %d\n", java2int(e.frameType));
+    fprintf("Frame Type: %d\n", e.frameType);
     fprintf("Identifier: %d\n", java2int(e.identifier));
     fprintf("Data (Length: %d):", e.data.length);
 

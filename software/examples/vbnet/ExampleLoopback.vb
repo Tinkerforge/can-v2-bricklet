@@ -40,8 +40,8 @@ Module ExampleLoopback
         can.SetFrameReadCallbackConfiguration(True)
 
         ' Write standard data frame with identifier 1742 and 3 bytes of data
-        Dim data As Byte() = {42, 23, 17}
-        can.WriteFrame(BrickletCANV2.FRAME_TYPE_STANDARD_DATA, 1742, data)
+        can.WriteFrame(BrickletCANV2.FRAME_TYPE_STANDARD_DATA, 1742, _
+                       new Byte(){42, 23, 17})
 
         Console.WriteLine("Press key to exit")
         Console.ReadLine()

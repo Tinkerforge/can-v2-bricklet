@@ -13,8 +13,8 @@ const UID = 'XYZ'; // Change XYZ to the UID of your CAN Bricklet 2.0
 // Callback function for frame read callback
 function cb_frameRead($frame_type, $identifier, $data)
 {
-    echo "Frame Type: " . $frame_type . "\n";
-    echo "Identifier: " . $identifier . "\n";
+    echo "Frame Type: $frame_type\n";
+    echo "Identifier: $identifier\n";
     echo "Data (Length: " . count($data) . "):";
 
     for ($i = 0; $i < count($data) && $i < 8; ++$i) {
@@ -41,8 +41,7 @@ $can->registerCallback(BrickletCANV2::CALLBACK_FRAME_READ, 'cb_frameRead');
 $can->setFrameReadCallbackConfiguration(TRUE);
 
 // Write standard data frame with identifier 1742 and 3 bytes of data
-$data = [42, 23, 17];
-$can->writeFrame(BrickletCANV2::FRAME_TYPE_STANDARD_DATA, 1742, $data);
+$can->writeFrame(BrickletCANV2::FRAME_TYPE_STANDARD_DATA, 1742, array(42, 23, 17));
 
 echo "Press ctrl+c to exit\n";
 $ipcon->dispatchCallbacks(-1); // Dispatch callbacks forever

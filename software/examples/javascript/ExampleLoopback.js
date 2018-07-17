@@ -24,8 +24,8 @@ ipcon.on(Tinkerforge.IPConnection.CALLBACK_CONNECTED,
         can.setFrameReadCallbackConfiguration(true);
 
         // Write standard data frame with identifier 1742 and 3 bytes of data
-        var data = [42, 23, 17];
-        can.writeFrame(Tinkerforge.BrickletCANV2.FRAME_TYPE_STANDARD_DATA, 1742, data);
+        can.writeFrame(Tinkerforge.BrickletCANV2.FRAME_TYPE_STANDARD_DATA, 1742,
+                       [42, 23, 17]);
     }
 );
 

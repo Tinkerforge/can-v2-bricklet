@@ -42,8 +42,8 @@ class Example
 		can.SetFrameReadCallbackConfiguration(true);
 
 		// Write standard data frame with identifier 1742 and 3 bytes of data
-		byte[] data = new byte[3]{42, 23, 17};
-		can.WriteFrame(BrickletCANV2.FRAME_TYPE_STANDARD_DATA, 1742, data);
+		can.WriteFrame(BrickletCANV2.FRAME_TYPE_STANDARD_DATA, 1742,
+		               new byte[]{42, 23, 17});
 
 		Console.WriteLine("Press enter to exit");
 		Console.ReadLine();

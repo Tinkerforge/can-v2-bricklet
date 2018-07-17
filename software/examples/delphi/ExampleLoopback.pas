@@ -66,9 +66,7 @@ begin
   can.SetFrameReadCallbackConfiguration(true);
 
   { Write standard data frame with identifier 1742 and 3 bytes of data }
-  SetLength(data, 3);
-  data[0] := 42; data[1] := 23; data[2] := 17;
-  can.WriteFrame(BRICKLET_CAN_V2_FRAME_TYPE_STANDARD_DATA, 1742, data);
+  can.WriteFrame(BRICKLET_CAN_V2_FRAME_TYPE_STANDARD_DATA, 1742, [42, 23, 17]);
 
   WriteLn('Press key to exit');
   ReadLn;
