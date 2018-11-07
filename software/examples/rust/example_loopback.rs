@@ -15,9 +15,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Configure transceiver for loopback mode
     can.set_transceiver_configuration(1000000, 625, CAN_V2_BRICKLET_TRANSCEIVER_MODE_LOOPBACK);
 
-    //Create receiver for frame read events.
-    let frame_read_receiver = can.get_frame_read_receiver();
-    // Spawn thread to handle received events. This thread ends when the can
+    let frame_read_receiver = can.get_frame_read_callback_receiver();
+    
+    // Spawn thread to handle received events.
+    // This thread ends when the `can` object
     // is dropped, so there is no need for manual cleanup.
     thread::spawn(move || {
         for frame_read in frame_read_receiver {
