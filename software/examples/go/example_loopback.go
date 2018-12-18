@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"tinkerforge/ipconnection"
-    "tinkerforge/can_v2_bricklet"
+	"github.com/tinkerforge/go-api-bindings/ipconnection"
+    "github.com/tinkerforge/go-api-bindings/can_v2_bricklet"
 )
 
 const ADDR string = "localhost:4223"
