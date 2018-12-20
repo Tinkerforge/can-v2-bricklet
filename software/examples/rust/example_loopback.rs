@@ -16,7 +16,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     can.set_transceiver_configuration(1000000, 625, CAN_V2_BRICKLET_TRANSCEIVER_MODE_LOOPBACK);
 
     let frame_read_receiver = can.get_frame_read_callback_receiver();
-    
+
     // Spawn thread to handle received events.
     // This thread ends when the `can` object
     // is dropped, so there is no need for manual cleanup.
@@ -42,7 +42,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     can.set_frame_read_callback_configuration(true);
 
     // Write standard data frame with identifier 1742 and 3 bytes of data
-    can.write_frame(CAN_V2_BRICKLET_FRAME_TYPE_STANDARD_DATA, 1742, &[42, 23, 17])?;
+    can.write_frame(
+        CAN_V2_BRICKLET_FRAME_TYPE_STANDARD_DATA,
+        1742,
+        &[42, 23, 17],
+    )?;
 
     println!("Press enter to exit.");
     let mut _input = String::new();
