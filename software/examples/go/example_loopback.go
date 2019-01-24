@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/Tinkerforge/go-api-bindings/can_v2_bricklet"
 	"github.com/Tinkerforge/go-api-bindings/ipconnection"
-    "github.com/Tinkerforge/go-api-bindings/can_v2_bricklet"
 )
 
 const ADDR string = "localhost:4223"
@@ -11,11 +11,11 @@ const UID string = "XYZ" // Change XYZ to the UID of your CAN Bricklet 2.0.
 
 func main() {
 	ipcon := ipconnection.New()
-    defer ipcon.Close()
+	defer ipcon.Close()
 	can, _ := can_v2_bricklet.New(UID, &ipcon) // Create device object.
 
 	ipcon.Connect(ADDR) // Connect to brickd.
-    defer ipcon.Disconnect()
+	defer ipcon.Disconnect()
 	// Don't use device before ipcon is connected.
 
 	// Configure transceiver for loopback mode
@@ -53,5 +53,4 @@ func main() {
 	fmt.Scanln()
 
 	can.SetFrameReadCallbackConfiguration(false)
-	ipcon.Disconnect()
 }
