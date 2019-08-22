@@ -48,7 +48,7 @@ int main(void) {
 	// Register frame read callback to function cb_frame_read
 	can_v2_register_callback(&can,
 	                         CAN_V2_CALLBACK_FRAME_READ,
-	                         (void *)cb_frame_read,
+	                         (void (*)(void))cb_frame_read,
 	                         NULL);
 
 	// Enable frame read callback
