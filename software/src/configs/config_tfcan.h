@@ -1,5 +1,5 @@
 /* can-v2-bricklet
- * Copyright (C) 2018 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2018-2019 Matthias Bolte <matthias@tinkerforge.com>
  *
  * config_tfcan.h: CAN specific configuration
  *
@@ -40,14 +40,15 @@
 #define TFCAN_RX_SRQ_INDEX                        0
 #define TFCAN_RX_IRQ_INDEX                        0
 
-#define TFCAN_NODE_SIZE                           2
+#define TFCAN_NODE_SIZE                           2 // limited by hardware
 
 #define TFCAN_NODE_LEC_SRQ_INDEX                  0
 #define TFCAN_NODE_LEC_IRQ_INDEX                  0
 
-#define TFCAN_BUFFER_SIZE                         32
+#define TFCAN_BUFFER_SIZE                         32 // limited by hardware
 //#define TFCAN_BUFFER_DEBUG
 
-#define TFCAN_BACKLOG_SIZE                        768 // 13-byte frames
+#define TFCAN_BACKLOG_SIZE                        768 // 13-byte frames, limited by RAM
+#define TFCAN_TIMESTAMPED_BACKLOG_SIZE            474 // 21-byte frames, limited by RAM
 
 #endif

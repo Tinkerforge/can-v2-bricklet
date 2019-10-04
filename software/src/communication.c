@@ -1,5 +1,5 @@
 /* can-v2-bricklet
- * Copyright (C) 2018 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2018-2019 Matthias Bolte <matthias@tinkerforge.com>
  *
  * communication.c: TFP protocol message handling
  *
@@ -31,6 +31,7 @@
 extern TFCAN tfcan;
 
 static bool frame_read_callback_enabled = false;
+static bool timestamped_frame_read_callback_enabled = false;
 
 BootloaderHandleMessageResponse handle_message(const void *message, void *response) {
 	switch(tfp_get_fid_from_message(message)) {
@@ -49,6 +50,13 @@ BootloaderHandleMessageResponse handle_message(const void *message, void *respon
 		case FID_GET_COMMUNICATION_LED_CONFIG: return get_communication_led_config(message, response);
 		case FID_SET_ERROR_LED_CONFIG: return set_error_led_config(message);
 		case FID_GET_ERROR_LED_CONFIG: return get_error_led_config(message, response);
+		case FID_SET_TIMESTAMPED_FRAME_CONFIGURATION: return set_timestamped_frame_configuration(message);
+		case FID_GET_TIMESTAMPED_FRAME_CONFIGURATION: return get_timestamped_frame_configuration(message, response);
+		case FID_WRITE_TIMESTAMPED_FRAME_LOW_LEVEL: return write_timestamped_frame_low_level(message, response);
+		case FID_READ_TIMESTAMPED_FRAME_LOW_LEVEL: return read_timestamped_frame_low_level(message, response);
+		case FID_GET_TIMESTAMP: return get_timestamp(message, response);
+		case FID_SET_TIMESTAMPED_FRAME_READ_CALLBACK_CONFIGURATION: return set_timestamped_frame_read_callback_configuration(message);
+		case FID_GET_TIMESTAMPED_FRAME_READ_CALLBACK_CONFIGURATION: return get_timestamped_frame_read_callback_configuration(message, response);
 		default: return HANDLE_MESSAGE_RESPONSE_NOT_SUPPORTED;
 	}
 }
@@ -85,7 +93,7 @@ BootloaderHandleMessageResponse write_frame_low_level(const WriteFrameLowLevel *
 BootloaderHandleMessageResponse read_frame_low_level(const ReadFrameLowLevel *data, ReadFrameLowLevel_Response *response) {
 	response->header.length = sizeof(ReadFrameLowLevel_Response);
 
-	if (frame_read_callback_enabled) {
+	if (frame_read_callback_enabled || timestamped_frame_read_callback_enabled) {
 		response->success     = false;
 		response->frame_type  = CAN_V2_FRAME_TYPE_STANDARD_DATA;
 		response->identifier  = 0;
@@ -331,6 +339,112 @@ BootloaderHandleMessageResponse get_error_led_config(const GetErrorLEDConfig *da
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
 
+BootloaderHandleMessageResponse set_timestamped_frame_configuration(const SetTimestampedFrameConfiguration *data) {
+	if (data->write_backlog_size + data->read_backlog_size > TFCAN_TIMESTAMPED_BACKLOG_SIZE) {
+		return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+	}
+
+	logd("TSF %d\n\r", (int)data->enabled);
+
+	tfcan.timestamped_frame_enabled   = data->enabled;
+	tfcan.tx_timestamped_backlog_size = data->write_backlog_size;
+	tfcan.rx_timestamped_backlog_size = data->read_backlog_size;
+	tfcan.reconfigure_queues          = true;
+
+	return HANDLE_MESSAGE_RESPONSE_EMPTY;
+}
+
+BootloaderHandleMessageResponse get_timestamped_frame_configuration(const GetTimestampedFrameConfiguration *data, GetTimestampedFrameConfiguration_Response *response) {
+	response->header.length      = sizeof(GetTimestampedFrameConfiguration_Response);
+	response->enabled            = tfcan.timestamped_frame_enabled;
+	response->write_backlog_size = tfcan.tx_timestamped_backlog_size;
+	response->read_backlog_size  = tfcan.rx_timestamped_backlog_size;
+
+	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
+}
+
+BootloaderHandleMessageResponse write_timestamped_frame_low_level(const WriteTimestampedFrameLowLevel *data, WriteTimestampedFrameLowLevel_Response *response) {
+	if (data->frame_type > CAN_V2_FRAME_TYPE_EXTENDED_REMOTE ||
+	    data->data_length > 15) {
+		return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+	}
+
+	if (data->frame_type < CAN_V2_FRAME_TYPE_EXTENDED_DATA) {
+		if (data->identifier >= (1u << 11)) {
+			return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+		}
+	} else {
+		if (data->identifier >= (1u << 29)) {
+			return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+		}
+	}
+
+	TFCAN_TimestampedFrame timestamped_frame;
+
+	timestamped_frame.frame.mo_type    = data->frame_type;
+	timestamped_frame.frame.identifier = data->identifier;
+	memcpy(timestamped_frame.frame.data, data->data_data, MIN(data->data_length, sizeof(timestamped_frame.frame.data)));
+	timestamped_frame.frame.length     = data->data_length;
+	timestamped_frame.timestamp        = data->timestamp;
+
+	response->header.length = sizeof(WriteTimestampedFrameLowLevel_Response);
+	response->success       = tfcan_enqueue_timestamped_frame(&timestamped_frame);
+
+	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
+}
+
+BootloaderHandleMessageResponse read_timestamped_frame_low_level(const ReadTimestampedFrameLowLevel *data, ReadTimestampedFrameLowLevel_Response *response) {
+	response->header.length = sizeof(ReadTimestampedFrameLowLevel_Response);
+
+	if (frame_read_callback_enabled || timestamped_frame_read_callback_enabled) {
+		response->success     = false;
+		response->frame_type  = CAN_V2_FRAME_TYPE_STANDARD_DATA;
+		response->identifier  = 0;
+		response->data_length = 0;
+		memset(&response->data_data, 0, sizeof(response->data_data));
+		response->timestamp   = 0;
+	} else {
+		TFCAN_TimestampedFrame timestamped_frame;
+
+		// Need to zero the whole frame here because tfcan_dequeue_timestamped_frame
+		// will not touch it if there is no frame to be read
+		memset(&timestamped_frame, 0, sizeof(TFCAN_TimestampedFrame));
+
+		response->success     = tfcan_dequeue_timestamped_frame(&timestamped_frame);
+
+		const uint8_t length = MIN(timestamped_frame.frame.length, 8);
+
+		response->frame_type  = timestamped_frame.frame.mo_type;
+		response->identifier  = timestamped_frame.frame.identifier;
+		response->data_length = timestamped_frame.frame.length;
+		memcpy(response->data_data, timestamped_frame.frame.data, length);
+		memset(&response->data_data[length], 0, sizeof(response->data_data) - length);
+		response->timestamp   = timestamped_frame.timestamp;
+	}
+
+	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
+}
+
+BootloaderHandleMessageResponse get_timestamp(const GetTimestamp *data, GetTimestamp_Response *response) {
+	response->header.length = sizeof(GetTimestamp_Response);
+	response->timestamp     = system_timer_get_us();
+
+	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
+}
+
+BootloaderHandleMessageResponse set_timestamped_frame_read_callback_configuration(const SetTimestampedFrameReadCallbackConfiguration *data) {
+	timestamped_frame_read_callback_enabled = data->enabled;
+
+	return HANDLE_MESSAGE_RESPONSE_EMPTY;
+}
+
+BootloaderHandleMessageResponse get_timestamped_frame_read_callback_configuration(const GetTimestampedFrameReadCallbackConfiguration *data, GetTimestampedFrameReadCallbackConfiguration_Response *response) {
+	response->header.length = sizeof(GetTimestampedFrameReadCallbackConfiguration_Response);
+	response->enabled       = timestamped_frame_read_callback_enabled;
+
+	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
+}
+
 bool handle_frame_read_low_level_callback(void) {
 	static bool is_buffered = false;
 	static FrameReadLowLevel_Callback cb;
@@ -359,6 +473,44 @@ bool handle_frame_read_low_level_callback(void) {
 
 	if (bootloader_spitfp_is_send_possible(&bootloader_status.st)) {
 		bootloader_spitfp_send_ack_and_message(&bootloader_status, (uint8_t*)&cb, sizeof(FrameReadLowLevel_Callback));
+		is_buffered = false;
+		return true;
+	} else {
+		is_buffered = true;
+	}
+
+	return false;
+}
+
+bool handle_timestamped_frame_read_low_level_callback(void) {
+	static bool is_buffered = false;
+	static TimestampedFrameReadLowLevel_Callback cb;
+
+	if (!is_buffered) {
+		if (!timestamped_frame_read_callback_enabled) {
+			return false;
+		}
+
+		TFCAN_TimestampedFrame timestamped_frame;
+
+		if (!tfcan_dequeue_timestamped_frame(&timestamped_frame)) {
+			return false;
+		}
+
+		const uint8_t length = MIN(timestamped_frame.frame.length, 8);
+
+		tfp_make_default_header(&cb.header, bootloader_get_uid(), sizeof(TimestampedFrameReadLowLevel_Callback), FID_CALLBACK_TIMESTAMPED_FRAME_READ_LOW_LEVEL);
+
+		cb.frame_type  = timestamped_frame.frame.mo_type;
+		cb.identifier  = timestamped_frame.frame.identifier;
+		cb.data_length = timestamped_frame.frame.length;
+		memcpy(cb.data_data, timestamped_frame.frame.data, length);
+		memset(&cb.data_data[length], 0, sizeof(cb.data_data) - length);
+		cb.timestamp   = timestamped_frame.timestamp;
+	}
+
+	if (bootloader_spitfp_is_send_possible(&bootloader_status.st)) {
+		bootloader_spitfp_send_ack_and_message(&bootloader_status, (uint8_t*)&cb, sizeof(TimestampedFrameReadLowLevel_Callback));
 		is_buffered = false;
 		return true;
 	} else {

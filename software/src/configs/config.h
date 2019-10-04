@@ -1,5 +1,5 @@
 /* can-v2-bricklet
- * Copyright (C) 2018 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2018-2019 Matthias Bolte <matthias@tinkerforge.com>
  *
  * config.h: All configurations for CAN V2 Bricklet
  *
@@ -24,6 +24,12 @@
 
 #include "xmc_device.h"
 
+#define SYSTEM_TIMER_MAIN_CLOCK_MHZ_48 // For fast divide by 48
+#define SYSTEM_TIMER_MAIN_CLOCK_MHZ 48
+#define SYSTEM_TIMER_USE_64BIT_US
+#define SYSTEM_TIMER_IS_RAMFUNC
+#define SYSTEM_TIMER_FREQUENCY 1000 // Use 1 kHz system timer
+
 #define STARTUP_SYSTEM_INIT_ALREADY_DONE
 #define SYSTEM_TIMER_FREQUENCY 1000 // Use 1 kHz system timer
 
@@ -32,7 +38,7 @@
 
 #define FIRMWARE_VERSION_MAJOR 2
 #define FIRMWARE_VERSION_MINOR 0
-#define FIRMWARE_VERSION_REVISION 2
+#define FIRMWARE_VERSION_REVISION 3
 
 #include "config_custom_bootloader.h"
 

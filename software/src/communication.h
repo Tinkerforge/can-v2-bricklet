@@ -1,5 +1,5 @@
 /* can-v2-bricklet
- * Copyright (C) 2018 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2018-2019 Matthias Bolte <matthias@tinkerforge.com>
  *
  * communication.h: TFP protocol message handling
  *
@@ -97,8 +97,16 @@ void communication_init(void);
 #define FID_GET_COMMUNICATION_LED_CONFIG 13
 #define FID_SET_ERROR_LED_CONFIG 14
 #define FID_GET_ERROR_LED_CONFIG 15
+#define FID_SET_TIMESTAMPED_FRAME_CONFIGURATION 17
+#define FID_GET_TIMESTAMPED_FRAME_CONFIGURATION 18
+#define FID_WRITE_TIMESTAMPED_FRAME_LOW_LEVEL 19
+#define FID_READ_TIMESTAMPED_FRAME_LOW_LEVEL 20
+#define FID_GET_TIMESTAMP 21
+#define FID_SET_TIMESTAMPED_FRAME_READ_CALLBACK_CONFIGURATION 22
+#define FID_GET_TIMESTAMPED_FRAME_READ_CALLBACK_CONFIGURATION 23
 
 #define FID_CALLBACK_FRAME_READ_LOW_LEVEL 16
+#define FID_CALLBACK_TIMESTAMPED_FRAME_READ_LOW_LEVEL 24
 
 typedef struct {
 	TFPMessageHeader header;
@@ -254,11 +262,89 @@ typedef struct {
 
 typedef struct {
 	TFPMessageHeader header;
+	bool enabled;
+	uint16_t write_backlog_size;
+	uint16_t read_backlog_size;
+} __attribute__((__packed__)) SetTimestampedFrameConfiguration;
+
+typedef struct {
+	TFPMessageHeader header;
+} __attribute__((__packed__)) GetTimestampedFrameConfiguration;
+
+typedef struct {
+	TFPMessageHeader header;
+	bool enabled;
+	uint16_t write_backlog_size;
+	uint16_t read_backlog_size;
+} __attribute__((__packed__)) GetTimestampedFrameConfiguration_Response;
+
+typedef struct {
+	TFPMessageHeader header;
+	uint8_t frame_type;
+	uint32_t identifier;
+	uint8_t data_length;
+	uint8_t data_data[15];
+	uint64_t timestamp; // microsecond
+} __attribute__((__packed__)) WriteTimestampedFrameLowLevel;
+
+typedef struct {
+	TFPMessageHeader header;
+	bool success;
+} __attribute__((__packed__)) WriteTimestampedFrameLowLevel_Response;
+
+typedef struct {
+	TFPMessageHeader header;
+} __attribute__((__packed__)) ReadTimestampedFrameLowLevel;
+
+typedef struct {
+	TFPMessageHeader header;
+	bool success;
+	uint8_t frame_type;
+	uint32_t identifier;
+	uint8_t data_length;
+	uint8_t data_data[15];
+	uint64_t timestamp; // microsecond
+} __attribute__((__packed__)) ReadTimestampedFrameLowLevel_Response;
+
+typedef struct {
+	TFPMessageHeader header;
+} __attribute__((__packed__)) GetTimestamp;
+
+typedef struct {
+	TFPMessageHeader header;
+	uint64_t timestamp; // microsecond
+} __attribute__((__packed__)) GetTimestamp_Response;
+
+typedef struct {
+	TFPMessageHeader header;
+	bool enabled;
+} __attribute__((__packed__)) SetTimestampedFrameReadCallbackConfiguration;
+
+typedef struct {
+	TFPMessageHeader header;
+} __attribute__((__packed__)) GetTimestampedFrameReadCallbackConfiguration;
+
+typedef struct {
+	TFPMessageHeader header;
+	bool enabled;
+} __attribute__((__packed__)) GetTimestampedFrameReadCallbackConfiguration_Response;
+
+typedef struct {
+	TFPMessageHeader header;
 	uint8_t frame_type;
 	uint32_t identifier;
 	uint8_t data_length;
 	uint8_t data_data[15];
 } __attribute__((__packed__)) FrameReadLowLevel_Callback;
+
+typedef struct {
+	TFPMessageHeader header;
+	uint8_t frame_type;
+	uint32_t identifier;
+	uint8_t data_length;
+	uint8_t data_data[15];
+	uint64_t timestamp; // microsecond
+} __attribute__((__packed__)) TimestampedFrameReadLowLevel_Callback;
 
 // Function prototypes
 BootloaderHandleMessageResponse write_frame_low_level(const WriteFrameLowLevel *data, WriteFrameLowLevel_Response *response);
@@ -276,13 +362,22 @@ BootloaderHandleMessageResponse set_communication_led_config(const SetCommunicat
 BootloaderHandleMessageResponse get_communication_led_config(const GetCommunicationLEDConfig *data, GetCommunicationLEDConfig_Response *response);
 BootloaderHandleMessageResponse set_error_led_config(const SetErrorLEDConfig *data);
 BootloaderHandleMessageResponse get_error_led_config(const GetErrorLEDConfig *data, GetErrorLEDConfig_Response *response);
+BootloaderHandleMessageResponse set_timestamped_frame_configuration(const SetTimestampedFrameConfiguration *data);
+BootloaderHandleMessageResponse get_timestamped_frame_configuration(const GetTimestampedFrameConfiguration *data, GetTimestampedFrameConfiguration_Response *response);
+BootloaderHandleMessageResponse write_timestamped_frame_low_level(const WriteTimestampedFrameLowLevel *data, WriteTimestampedFrameLowLevel_Response *response);
+BootloaderHandleMessageResponse read_timestamped_frame_low_level(const ReadTimestampedFrameLowLevel *data, ReadTimestampedFrameLowLevel_Response *response);
+BootloaderHandleMessageResponse get_timestamp(const GetTimestamp *data, GetTimestamp_Response *response);
+BootloaderHandleMessageResponse set_timestamped_frame_read_callback_configuration(const SetTimestampedFrameReadCallbackConfiguration *data);
+BootloaderHandleMessageResponse get_timestamped_frame_read_callback_configuration(const GetTimestampedFrameReadCallbackConfiguration *data, GetTimestampedFrameReadCallbackConfiguration_Response *response);
 
 // Callbacks
 bool handle_frame_read_low_level_callback(void);
+bool handle_timestamped_frame_read_low_level_callback(void);
 
 #define COMMUNICATION_CALLBACK_TICK_WAIT_MS 1
-#define COMMUNICATION_CALLBACK_HANDLER_NUM 1
+#define COMMUNICATION_CALLBACK_HANDLER_NUM 2
 #define COMMUNICATION_CALLBACK_LIST_INIT \
 	handle_frame_read_low_level_callback, \
+	handle_timestamped_frame_read_low_level_callback, \
 
 #endif

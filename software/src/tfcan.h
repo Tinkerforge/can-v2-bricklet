@@ -1,5 +1,5 @@
 /* can-v2-bricklet
- * Copyright (C) 2018 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2018-2019 Matthias Bolte <matthias@tinkerforge.com>
  *
  * tfcan.h: Transfer data over CAN bus
  *
@@ -75,6 +75,11 @@ typedef struct {
 } __attribute__((__packed__)) TFCAN_Frame; // 13 bytes
 
 typedef struct {
+	TFCAN_Frame frame;
+	uint64_t timestamp; // microsecond
+} __attribute__((__packed__)) TFCAN_TimestampedFrame; // 21 bytes
+
+typedef struct {
 	bool reconfigure_transceiver;
 	bool reconfigure_queues;
 	uint32_t reconfigure_rx_filters; // bitmask
@@ -83,6 +88,7 @@ typedef struct {
 	uint16_t sample_point; // config, [500..900] 0.1 %
 	uint8_t sync_jump_width; // [1..4] // FIXME: bit-timing calculation assumes this to be 1
 	TFCAN_TransceiverMode transceiver_mode; // config
+	bool timestamped_frame_enabled; // config
 
 	CAN_NODE_TypeDef *node[TFCAN_NODE_SIZE];
 	CAN_NODE_TypeDef *tx_node;
@@ -108,15 +114,22 @@ typedef struct {
 	int32_t *rx_buffer_mo_frame_counter[TFCAN_BUFFER_SIZE];
 	uint16_t *rx_buffer_mo_age[TFCAN_BUFFER_SIZE];
 
-	TFCAN_Frame backlog[TFCAN_BACKLOG_SIZE];
+	union {
+		TFCAN_Frame backlog[TFCAN_BACKLOG_SIZE];
+		TFCAN_TimestampedFrame timestamped_backlog[TFCAN_TIMESTAMPED_BACKLOG_SIZE];
+	};
 
 	uint16_t tx_backlog_size; // config, [0..TFCAN_BACKLOG_SIZE]
+	uint16_t tx_timestamped_backlog_size; // config, [0..TFCAN_TIMESTAMPED_BACKLOG_SIZE]
 	TFCAN_Frame *tx_backlog;
+	TFCAN_TimestampedFrame *tx_timestamped_backlog;
 	uint16_t tx_backlog_start;
 	uint16_t tx_backlog_end;
 
 	uint16_t rx_backlog_size; // config, [0..TFCAN_BACKLOG_SIZE]
+	uint16_t rx_timestamped_backlog_size; // config, [0..TFCAN_TIMESTAMPED_BACKLOG_SIZE]
 	TFCAN_Frame *rx_backlog;
+	TFCAN_TimestampedFrame *rx_timestamped_backlog;
 	uint16_t rx_backlog_start;
 	uint16_t rx_backlog_end;
 
@@ -159,6 +172,8 @@ void tfcan_reconfigure_rx_filters(void);
 void tfcan_check_tx_buffer_timeout(void);
 
 bool tfcan_enqueue_frame(TFCAN_Frame *frame);
+bool tfcan_enqueue_timestamped_frame(TFCAN_TimestampedFrame *frame);
 bool tfcan_dequeue_frame(TFCAN_Frame *frame);
+bool tfcan_dequeue_timestamped_frame(TFCAN_TimestampedFrame *frame);
 
 #endif

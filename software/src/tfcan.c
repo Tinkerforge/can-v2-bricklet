@@ -1,5 +1,5 @@
 /* can-v2-bricklet
- * Copyright (C) 2018 Matthias Bolte <matthias@tinkerforge.com>
+ * Copyright (C) 2018-2019 Matthias Bolte <matthias@tinkerforge.com>
  *
  * tfcan.c: Transfer data over CAN bus
  *
@@ -67,6 +67,7 @@ void tfcan_init(void) {
 	tfcan.sample_point = 625; // config default
 	tfcan.sync_jump_width = 1;
 	tfcan.transceiver_mode = TFCAN_TRANSCEIVER_MODE_NORMAL; // config default
+	tfcan.timestamped_frame_enabled = false;
 
 	tfcan.node[0] = CAN_NODE0;
 	tfcan.node[1] = CAN_NODE1;
@@ -89,8 +90,10 @@ void tfcan_init(void) {
 	}
 
 	tfcan.tx_backlog_size = TFCAN_BACKLOG_SIZE / 2; // config default
+	tfcan.tx_timestamped_backlog_size = TFCAN_TIMESTAMPED_BACKLOG_SIZE / 2; // config default
 
 	tfcan.rx_backlog_size = TFCAN_BACKLOG_SIZE / 2; // config default
+	tfcan.rx_timestamped_backlog_size = TFCAN_TIMESTAMPED_BACKLOG_SIZE / 2; // config default
 
 #ifdef TFCAN_BUFFER_DEBUG
 	tfcan.last_buffer_debug = system_timer_get_ms();
@@ -187,6 +190,7 @@ void tfcan_tick(void) {
 
 		logd("nx-tx %u\n\r", tfcan.tx_buffer_mo_next_index);
 
+		// FIXME: adapt for timestamped frame
 		if (tfcan.tx_backlog_size > 0) {
 			logd("bl-tx %u[%u] -> %u[%u]\n\r", tfcan.tx_backlog_start, tfcan.tx_backlog[tfcan.tx_backlog_start].mo_type,
 			                                   tfcan.tx_backlog_end, tfcan.tx_backlog[tfcan.tx_backlog_end].mo_type);
@@ -205,6 +209,7 @@ void tfcan_tick(void) {
 			}
 		}
 
+		// FIXME: adapt for timestamped frame
 		if (tfcan.rx_backlog_size > 0) {
 			logd("bl-rx %u[%u] -> %u[%u]\n\r", tfcan.rx_backlog_start, tfcan.rx_backlog[tfcan.rx_backlog_start].mo_type,
 			                                   tfcan.rx_backlog_end, tfcan.rx_backlog[tfcan.rx_backlog_end].mo_type);
@@ -224,9 +229,17 @@ void tfcan_tick(void) {
 	// write at most TX FIFO size frames
 	for (uint8_t i = 0; i < tfcan.tx_buffer_size; ++i) {
 		// check TX backlog
-		if (tfcan.tx_backlog_size == 0 ||
-		    tfcan.tx_backlog[tfcan.tx_backlog_start].mo_type == TFCAN_MO_TYPE_INVALID) {
-			break; // TX backlog empty
+		if (!tfcan.timestamped_frame_enabled) {
+			if (tfcan.tx_backlog_size == 0 ||
+			    tfcan.tx_backlog[tfcan.tx_backlog_start].mo_type == TFCAN_MO_TYPE_INVALID) {
+				break; // TX backlog empty
+			}
+		} else {
+			if (tfcan.tx_timestamped_backlog_size == 0 ||
+			    tfcan.tx_timestamped_backlog[tfcan.tx_backlog_start].frame.mo_type == TFCAN_MO_TYPE_INVALID ||
+			    tfcan.tx_timestamped_backlog[tfcan.tx_backlog_start].timestamp > system_timer_get_us()) {
+				break; // TX backlog empty
+			}
 		}
 
 		// check TX FIFO
@@ -240,13 +253,24 @@ void tfcan_tick(void) {
 		logd("tx %u -> %u\n\r", tfcan.tx_backlog_start, tfcan.tx_buffer_mo_next_index);
 
 		// copy frame into MO
-		TFCAN_Frame *frame = &tfcan.tx_backlog[tfcan.tx_backlog_start];
+		TFCAN_Frame *frame;
+
+		if (!tfcan.timestamped_frame_enabled) {
+			frame = &tfcan.tx_backlog[tfcan.tx_backlog_start];
+		} else {
+			frame = &tfcan.tx_timestamped_backlog[tfcan.tx_backlog_start].frame;
+		}
 
 		tfcan_mo_set_identifier(tx_buffer_mo_next, frame->mo_type, frame->identifier);
 		tfcan_mo_set_data(tx_buffer_mo_next, frame->data, frame->length);
 
-		tfcan.tx_backlog[tfcan.tx_backlog_start].mo_type = TFCAN_MO_TYPE_INVALID;
-		tfcan.tx_backlog_start = (tfcan.tx_backlog_start + 1) % tfcan.tx_backlog_size;
+		if (!tfcan.timestamped_frame_enabled) {
+			tfcan.tx_backlog[tfcan.tx_backlog_start].mo_type = TFCAN_MO_TYPE_INVALID;
+			tfcan.tx_backlog_start = (tfcan.tx_backlog_start + 1) % tfcan.tx_backlog_size;
+		} else {
+			tfcan.tx_timestamped_backlog[tfcan.tx_backlog_start].frame.mo_type = TFCAN_MO_TYPE_INVALID;
+			tfcan.tx_backlog_start = (tfcan.tx_backlog_start + 1) % tfcan.tx_timestamped_backlog_size;
+		}
 
 		// schedule MO for transmission
 		if (tfcan.tx_buffer_size == 1) {
@@ -355,13 +379,31 @@ void tfcan_tick(void) {
 		const int32_t rx_buffer_mo_age = tfcan.rx_buffer_mo_age[k][rx_buffer_mo_next_index];
 
 		// check RX backlog
-		if (tfcan.rx_backlog_size > 0 &&
-		    tfcan.rx_backlog[tfcan.rx_backlog_end].mo_type == TFCAN_MO_TYPE_INVALID) {
+		bool rx_backlog_available;
+
+		if (!tfcan.timestamped_frame_enabled) {
+			rx_backlog_available = tfcan.rx_backlog_size > 0 &&
+			                       tfcan.rx_backlog[tfcan.rx_backlog_end].mo_type == TFCAN_MO_TYPE_INVALID;
+		} else {
+			rx_backlog_available = tfcan.rx_timestamped_backlog_size > 0 &&
+			                       tfcan.rx_timestamped_backlog[tfcan.rx_backlog_end].frame.mo_type == TFCAN_MO_TYPE_INVALID;
+		}
+
+		if (rx_backlog_available) {
 			logd("rx %u:%u (%d) -> %u\n\r", k, rx_buffer_mo_next_index, rx_buffer_mo_age, tfcan.rx_backlog_end);
 
-			TFCAN_Frame *frame = &tfcan.rx_backlog[tfcan.rx_backlog_end];
+			TFCAN_Frame *frame;
 			uint8_t status;
 
+			if (!tfcan.timestamped_frame_enabled) {
+				frame = &tfcan.rx_backlog[tfcan.rx_backlog_end];
+			} else {
+				frame = &tfcan.rx_timestamped_backlog[tfcan.rx_backlog_end].frame;
+
+				tfcan.rx_timestamped_backlog[tfcan.rx_backlog_end].timestamp = system_timer_get_us();
+			}
+
+			// FIXME: explain this loop
 			do {
 				tfcan_mo_change_status(rx_buffer_mo_next, TFCAN_MO_RESET_STATUS_NEW_DATA |
 				                                          TFCAN_MO_RESET_STATUS_RX_PENDING);
@@ -383,7 +425,11 @@ void tfcan_tick(void) {
 			} while ((status & TFCAN_MO_STATUS_NEW_DATA) != 0 ||
 			         (status & TFCAN_MO_STATUS_RX_UPDATING) != 0); // FIXME: add timeout
 
-			tfcan.rx_backlog_end = (tfcan.rx_backlog_end + 1) % tfcan.rx_backlog_size;
+			if (!tfcan.timestamped_frame_enabled) {
+				tfcan.rx_backlog_end = (tfcan.rx_backlog_end + 1) % tfcan.rx_backlog_size;
+			} else {
+				tfcan.rx_backlog_end = (tfcan.rx_backlog_end + 1) % tfcan.rx_timestamped_backlog_size;
+			}
 		} else {
 			logd("rx %u:%u (%d) drop\n\r", k, rx_buffer_mo_next_index, rx_buffer_mo_age);
 
@@ -590,20 +636,46 @@ void tfcan_reconfigure_queues(void) {
 		tfcan.rx_buffer_mo_next_index[i] = 0;
 	}
 
-	tfcan.tx_backlog = tfcan.backlog;
+	if (!tfcan.timestamped_frame_enabled) {
+		tfcan.tx_backlog = tfcan.backlog;
+		tfcan.tx_timestamped_backlog = NULL;
+	} else {
+		tfcan.tx_backlog = NULL;
+		tfcan.tx_timestamped_backlog = tfcan.timestamped_backlog;
+	}
+
 	tfcan.tx_backlog_start = 0;
 	tfcan.tx_backlog_end = 0;
 
-	for (uint16_t i = 0; i < tfcan.tx_backlog_size; ++i) {
-		tfcan.tx_backlog[i].mo_type = TFCAN_MO_TYPE_INVALID;
+	if (!tfcan.timestamped_frame_enabled) {
+		for (uint16_t i = 0; i < tfcan.tx_backlog_size; ++i) {
+			tfcan.tx_backlog[i].mo_type = TFCAN_MO_TYPE_INVALID;
+		}
+	} else {
+		for (uint16_t i = 0; i < tfcan.tx_timestamped_backlog_size; ++i) {
+			tfcan.tx_timestamped_backlog[i].frame.mo_type = TFCAN_MO_TYPE_INVALID;
+		}
 	}
 
-	tfcan.rx_backlog = &tfcan.backlog[tfcan.tx_backlog_size];
+	if (!tfcan.timestamped_frame_enabled) {
+		tfcan.rx_backlog = &tfcan.backlog[tfcan.tx_backlog_size];
+		tfcan.rx_timestamped_backlog = NULL;
+	} else {
+		tfcan.rx_backlog = NULL;
+		tfcan.rx_timestamped_backlog = &tfcan.timestamped_backlog[tfcan.tx_timestamped_backlog_size];
+	}
+
 	tfcan.rx_backlog_start = 0;
 	tfcan.rx_backlog_end = 0;
 
-	for (uint16_t i = 0; i < tfcan.rx_backlog_size; ++i) {
-		tfcan.rx_backlog[i].mo_type = TFCAN_MO_TYPE_INVALID;
+	if (!tfcan.timestamped_frame_enabled) {
+		for (uint16_t i = 0; i < tfcan.rx_backlog_size; ++i) {
+			tfcan.rx_backlog[i].mo_type = TFCAN_MO_TYPE_INVALID;
+		}
+	} else {
+		for (uint16_t i = 0; i < tfcan.rx_timestamped_backlog_size; ++i) {
+			tfcan.rx_timestamped_backlog[i].frame.mo_type = TFCAN_MO_TYPE_INVALID;
+		}
 	}
 
 	const uint8_t tx_node_index = 0;
@@ -815,6 +887,7 @@ void tfcan_check_tx_buffer_timeout(void) {
 bool tfcan_enqueue_frame(TFCAN_Frame *frame) {
 	if (tfcan.reconfigure_queues ||
 	    tfcan.transceiver_mode == TFCAN_TRANSCEIVER_MODE_READ_ONLY ||
+	    tfcan.timestamped_frame_enabled ||
 	    tfcan.tx_buffer_size == 0 ||
 	    tfcan.tx_backlog_size == 0) {
 		return false;
@@ -830,9 +903,30 @@ bool tfcan_enqueue_frame(TFCAN_Frame *frame) {
 	return true;
 }
 
+// add timestamped frame to TX backlog
+bool tfcan_enqueue_timestamped_frame(TFCAN_TimestampedFrame *timestamped_frame) {
+	if (tfcan.reconfigure_queues ||
+	    tfcan.transceiver_mode == TFCAN_TRANSCEIVER_MODE_READ_ONLY ||
+	    !tfcan.timestamped_frame_enabled ||
+	    tfcan.tx_buffer_size == 0 ||
+	    tfcan.tx_timestamped_backlog_size == 0) {
+		return false;
+	}
+
+	if (tfcan.tx_timestamped_backlog[tfcan.tx_backlog_end].frame.mo_type != TFCAN_MO_TYPE_INVALID) {
+		return false; // TX backlog full
+	}
+
+	memcpy(&tfcan.tx_timestamped_backlog[tfcan.tx_backlog_end], timestamped_frame, sizeof(TFCAN_TimestampedFrame));
+	tfcan.tx_backlog_end = (tfcan.tx_backlog_end + 1) % tfcan.tx_timestamped_backlog_size;
+
+	return true;
+}
+
 // remove frame from RX backlog
 bool tfcan_dequeue_frame(TFCAN_Frame *frame) {
 	if (tfcan.reconfigure_queues ||
+	    tfcan.timestamped_frame_enabled ||
 	    tfcan.rx_backlog_size == 0) {
 		return false;
 	}
@@ -845,6 +939,26 @@ bool tfcan_dequeue_frame(TFCAN_Frame *frame) {
 
 	tfcan.rx_backlog[tfcan.rx_backlog_start].mo_type = TFCAN_MO_TYPE_INVALID;
 	tfcan.rx_backlog_start = (tfcan.rx_backlog_start + 1) % tfcan.rx_backlog_size;
+
+	return true;
+}
+
+// remove timestamped frame from RX backlog
+bool tfcan_dequeue_timestamped_frame(TFCAN_TimestampedFrame *timestamped_frame) {
+	if (tfcan.reconfigure_queues ||
+	    !tfcan.timestamped_frame_enabled ||
+	    tfcan.rx_timestamped_backlog_size == 0) {
+		return false;
+	}
+
+	if (tfcan.rx_timestamped_backlog[tfcan.rx_backlog_start].frame.mo_type == TFCAN_MO_TYPE_INVALID) {
+		return false; // RX backlog empty
+	}
+
+	memcpy(timestamped_frame, &tfcan.rx_timestamped_backlog[tfcan.rx_backlog_start], sizeof(TFCAN_TimestampedFrame));
+
+	tfcan.rx_timestamped_backlog[tfcan.rx_backlog_start].frame.mo_type = TFCAN_MO_TYPE_INVALID;
+	tfcan.rx_backlog_start = (tfcan.rx_backlog_start + 1) % tfcan.rx_timestamped_backlog_size;
 
 	return true;
 }
