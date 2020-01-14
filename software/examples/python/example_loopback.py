@@ -34,6 +34,6 @@ if __name__ == "__main__":
     # Write standard data frame with identifier 1742 and 3 bytes of data
     can.write_frame(can.FRAME_TYPE_STANDARD_DATA, 1742, [42, 23, 17])
 
-    raw_input("Press key to exit\n") # Use input() in Python 3
+    input("Press key to exit\n") # Use raw_input() in Python 2
     can.set_frame_read_callback_configuration(False)
     ipcon.disconnect()
