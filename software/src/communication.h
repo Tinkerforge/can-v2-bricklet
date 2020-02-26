@@ -375,9 +375,14 @@ bool handle_frame_read_low_level_callback(void);
 bool handle_timestamped_frame_read_low_level_callback(void);
 
 #define COMMUNICATION_CALLBACK_TICK_WAIT_MS 1
+/* Disable incomplete timestamped frame functions for now.
 #define COMMUNICATION_CALLBACK_HANDLER_NUM 2
 #define COMMUNICATION_CALLBACK_LIST_INIT \
 	handle_frame_read_low_level_callback, \
 	handle_timestamped_frame_read_low_level_callback, \
+*/
+#define COMMUNICATION_CALLBACK_HANDLER_NUM 1
+#define COMMUNICATION_CALLBACK_LIST_INIT \
+	handle_frame_read_low_level_callback, \
 
 #endif

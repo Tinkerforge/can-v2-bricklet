@@ -50,6 +50,7 @@ BootloaderHandleMessageResponse handle_message(const void *message, void *respon
 		case FID_GET_COMMUNICATION_LED_CONFIG: return get_communication_led_config(message, response);
 		case FID_SET_ERROR_LED_CONFIG: return set_error_led_config(message);
 		case FID_GET_ERROR_LED_CONFIG: return get_error_led_config(message, response);
+/*
 		case FID_SET_TIMESTAMPED_FRAME_CONFIGURATION: return set_timestamped_frame_configuration(message);
 		case FID_GET_TIMESTAMPED_FRAME_CONFIGURATION: return get_timestamped_frame_configuration(message, response);
 		case FID_WRITE_TIMESTAMPED_FRAME_LOW_LEVEL: return write_timestamped_frame_low_level(message, response);
@@ -57,6 +58,7 @@ BootloaderHandleMessageResponse handle_message(const void *message, void *respon
 		case FID_GET_TIMESTAMP: return get_timestamp(message, response);
 		case FID_SET_TIMESTAMPED_FRAME_READ_CALLBACK_CONFIGURATION: return set_timestamped_frame_read_callback_configuration(message);
 		case FID_GET_TIMESTAMPED_FRAME_READ_CALLBACK_CONFIGURATION: return get_timestamped_frame_read_callback_configuration(message, response);
+*/
 		default: return HANDLE_MESSAGE_RESPONSE_NOT_SUPPORTED;
 	}
 }
