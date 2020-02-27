@@ -97,16 +97,19 @@ void communication_init(void);
 #define FID_GET_COMMUNICATION_LED_CONFIG 13
 #define FID_SET_ERROR_LED_CONFIG 14
 #define FID_GET_ERROR_LED_CONFIG 15
-#define FID_SET_TIMESTAMPED_FRAME_CONFIGURATION 17
-#define FID_GET_TIMESTAMPED_FRAME_CONFIGURATION 18
-#define FID_WRITE_TIMESTAMPED_FRAME_LOW_LEVEL 19
-#define FID_READ_TIMESTAMPED_FRAME_LOW_LEVEL 20
-#define FID_GET_TIMESTAMP 21
-#define FID_SET_TIMESTAMPED_FRAME_READ_CALLBACK_CONFIGURATION 22
-#define FID_GET_TIMESTAMPED_FRAME_READ_CALLBACK_CONFIGURATION 23
+#define FID_SET_FRAME_READABLE_CALLBACK_CONFIGURATION 17
+#define FID_GET_FRAME_READABLE_CALLBACK_CONFIGURATION 18
+#define FID_SET_TIMESTAMPED_FRAME_CONFIGURATION 20
+#define FID_GET_TIMESTAMPED_FRAME_CONFIGURATION 21
+#define FID_WRITE_TIMESTAMPED_FRAME_LOW_LEVEL 22
+#define FID_READ_TIMESTAMPED_FRAME_LOW_LEVEL 23
+#define FID_GET_TIMESTAMP 24
+#define FID_SET_TIMESTAMPED_FRAME_READ_CALLBACK_CONFIGURATION 25
+#define FID_GET_TIMESTAMPED_FRAME_READ_CALLBACK_CONFIGURATION 26
 
 #define FID_CALLBACK_FRAME_READ_LOW_LEVEL 16
-#define FID_CALLBACK_TIMESTAMPED_FRAME_READ_LOW_LEVEL 24
+#define FID_CALLBACK_FRAME_READABLE 19
+#define FID_CALLBACK_TIMESTAMPED_FRAME_READ_LOW_LEVEL 27
 
 typedef struct {
 	TFPMessageHeader header;
@@ -263,6 +266,24 @@ typedef struct {
 typedef struct {
 	TFPMessageHeader header;
 	bool enabled;
+} __attribute__((__packed__)) SetFrameReadableCallbackConfiguration;
+
+typedef struct {
+	TFPMessageHeader header;
+} __attribute__((__packed__)) GetFrameReadableCallbackConfiguration;
+
+typedef struct {
+	TFPMessageHeader header;
+	bool enabled;
+} __attribute__((__packed__)) GetFrameReadableCallbackConfiguration_Response;
+
+typedef struct {
+	TFPMessageHeader header;
+} __attribute__((__packed__)) FrameReadable_Callback;
+
+typedef struct {
+	TFPMessageHeader header;
+	bool enabled;
 	uint16_t write_backlog_size;
 	uint16_t read_backlog_size;
 } __attribute__((__packed__)) SetTimestampedFrameConfiguration;
@@ -362,6 +383,8 @@ BootloaderHandleMessageResponse set_communication_led_config(const SetCommunicat
 BootloaderHandleMessageResponse get_communication_led_config(const GetCommunicationLEDConfig *data, GetCommunicationLEDConfig_Response *response);
 BootloaderHandleMessageResponse set_error_led_config(const SetErrorLEDConfig *data);
 BootloaderHandleMessageResponse get_error_led_config(const GetErrorLEDConfig *data, GetErrorLEDConfig_Response *response);
+BootloaderHandleMessageResponse set_frame_readable_callback_configuration(const SetFrameReadableCallbackConfiguration *data);
+BootloaderHandleMessageResponse get_frame_readable_callback_configuration(const GetFrameReadableCallbackConfiguration *data, GetFrameReadableCallbackConfiguration_Response *response);
 BootloaderHandleMessageResponse set_timestamped_frame_configuration(const SetTimestampedFrameConfiguration *data);
 BootloaderHandleMessageResponse get_timestamped_frame_configuration(const GetTimestampedFrameConfiguration *data, GetTimestampedFrameConfiguration_Response *response);
 BootloaderHandleMessageResponse write_timestamped_frame_low_level(const WriteTimestampedFrameLowLevel *data, WriteTimestampedFrameLowLevel_Response *response);
@@ -372,17 +395,20 @@ BootloaderHandleMessageResponse get_timestamped_frame_read_callback_configuratio
 
 // Callbacks
 bool handle_frame_read_low_level_callback(void);
+bool handle_frame_readable_callback(void);
 bool handle_timestamped_frame_read_low_level_callback(void);
 
 #define COMMUNICATION_CALLBACK_TICK_WAIT_MS 1
 /* Disable incomplete timestamped frame functions for now.
+#define COMMUNICATION_CALLBACK_HANDLER_NUM 3
+#define COMMUNICATION_CALLBACK_LIST_INIT \
+	handle_frame_read_low_level_callback, \
+	handle_frame_readable_callback
+	handle_timestamped_frame_read_low_level_callback, \
+*/
 #define COMMUNICATION_CALLBACK_HANDLER_NUM 2
 #define COMMUNICATION_CALLBACK_LIST_INIT \
 	handle_frame_read_low_level_callback, \
-	handle_timestamped_frame_read_low_level_callback, \
-*/
-#define COMMUNICATION_CALLBACK_HANDLER_NUM 1
-#define COMMUNICATION_CALLBACK_LIST_INIT \
-	handle_frame_read_low_level_callback, \
+	handle_frame_readable_callback, \
 
 #endif

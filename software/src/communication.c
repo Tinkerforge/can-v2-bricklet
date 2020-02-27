@@ -31,6 +31,8 @@
 extern TFCAN tfcan;
 
 static bool frame_read_callback_enabled = false;
+static bool frame_readable_callback_enabled = false;
+static bool frame_readable_callback_already_sent = false;
 static bool timestamped_frame_read_callback_enabled = false;
 
 BootloaderHandleMessageResponse handle_message(const void *message, void *response) {
@@ -50,6 +52,8 @@ BootloaderHandleMessageResponse handle_message(const void *message, void *respon
 		case FID_GET_COMMUNICATION_LED_CONFIG: return get_communication_led_config(message, response);
 		case FID_SET_ERROR_LED_CONFIG: return set_error_led_config(message);
 		case FID_GET_ERROR_LED_CONFIG: return get_error_led_config(message, response);
+		case FID_SET_FRAME_READABLE_CALLBACK_CONFIGURATION: return set_frame_readable_callback_configuration(message);
+		case FID_GET_FRAME_READABLE_CALLBACK_CONFIGURATION: return get_frame_readable_callback_configuration(message, response);
 /*
 		case FID_SET_TIMESTAMPED_FRAME_CONFIGURATION: return set_timestamped_frame_configuration(message);
 		case FID_GET_TIMESTAMPED_FRAME_CONFIGURATION: return get_timestamped_frame_configuration(message, response);
@@ -94,6 +98,7 @@ BootloaderHandleMessageResponse write_frame_low_level(const WriteFrameLowLevel *
 
 BootloaderHandleMessageResponse read_frame_low_level(const ReadFrameLowLevel *data, ReadFrameLowLevel_Response *response) {
 	response->header.length = sizeof(ReadFrameLowLevel_Response);
+	frame_readable_callback_already_sent = false;
 
 	if (frame_read_callback_enabled || timestamped_frame_read_callback_enabled) {
 		response->success     = false;
@@ -122,6 +127,9 @@ BootloaderHandleMessageResponse read_frame_low_level(const ReadFrameLowLevel *da
 
 BootloaderHandleMessageResponse set_frame_read_callback_configuration(const SetFrameReadCallbackConfiguration *data) {
 	frame_read_callback_enabled = data->enabled;
+	if (data->enabled) {
+		frame_readable_callback_enabled = false;
+	}
 
 	return HANDLE_MESSAGE_RESPONSE_EMPTY;
 }
@@ -341,6 +349,22 @@ BootloaderHandleMessageResponse get_error_led_config(const GetErrorLEDConfig *da
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
 
+BootloaderHandleMessageResponse set_frame_readable_callback_configuration(const SetFrameReadableCallbackConfiguration *data) {
+	frame_readable_callback_enabled = data->enabled;
+	if(data->enabled) {
+		frame_read_callback_enabled = false;
+	}
+
+	return HANDLE_MESSAGE_RESPONSE_EMPTY;
+}
+
+BootloaderHandleMessageResponse get_frame_readable_callback_configuration(const GetFrameReadableCallbackConfiguration *data, GetFrameReadableCallbackConfiguration_Response *response) {
+	response->header.length = sizeof(GetFrameReadableCallbackConfiguration_Response);
+	response->enabled = frame_readable_callback_enabled;
+
+	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
+}
+
 BootloaderHandleMessageResponse set_timestamped_frame_configuration(const SetTimestampedFrameConfiguration *data) {
 	if (data->write_backlog_size + data->read_backlog_size > TFCAN_TIMESTAMPED_BACKLOG_SIZE) {
 		return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
@@ -436,6 +460,9 @@ BootloaderHandleMessageResponse get_timestamp(const GetTimestamp *data, GetTimes
 
 BootloaderHandleMessageResponse set_timestamped_frame_read_callback_configuration(const SetTimestampedFrameReadCallbackConfiguration *data) {
 	timestamped_frame_read_callback_enabled = data->enabled;
+	if (data->enabled) {
+		frame_readable_callback_enabled = false;
+	}
 
 	return HANDLE_MESSAGE_RESPONSE_EMPTY;
 }
@@ -475,6 +502,35 @@ bool handle_frame_read_low_level_callback(void) {
 
 	if (bootloader_spitfp_is_send_possible(&bootloader_status.st)) {
 		bootloader_spitfp_send_ack_and_message(&bootloader_status, (uint8_t*)&cb, sizeof(FrameReadLowLevel_Callback));
+		is_buffered = false;
+		return true;
+	} else {
+		is_buffered = true;
+	}
+
+	return false;
+}
+
+bool handle_frame_readable_callback(void) {
+	static bool is_buffered = false;
+	static FrameReadable_Callback cb;
+
+	if(!is_buffered) {
+		if (!frame_readable_callback_enabled || frame_readable_callback_already_sent) {
+			return false;
+		}
+
+		if (!tfcan_frame_readable()) {
+			return false;
+		}
+
+		frame_readable_callback_already_sent = true;
+
+		tfp_make_default_header(&cb.header, bootloader_get_uid(), sizeof(FrameReadable_Callback), FID_CALLBACK_FRAME_READABLE);
+	}
+
+	if(bootloader_spitfp_is_send_possible(&bootloader_status.st)) {
+		bootloader_spitfp_send_ack_and_message(&bootloader_status, (uint8_t*)&cb, sizeof(FrameReadable_Callback));
 		is_buffered = false;
 		return true;
 	} else {

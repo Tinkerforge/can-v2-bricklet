@@ -171,6 +171,8 @@ void tfcan_reconfigure_rx_filters(void);
 
 void tfcan_check_tx_buffer_timeout(void);
 
+bool tfcan_frame_readable();
+
 bool tfcan_enqueue_frame(TFCAN_Frame *frame);
 bool tfcan_enqueue_timestamped_frame(TFCAN_TimestampedFrame *frame);
 bool tfcan_dequeue_frame(TFCAN_Frame *frame);

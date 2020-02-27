@@ -923,8 +923,7 @@ bool tfcan_enqueue_timestamped_frame(TFCAN_TimestampedFrame *timestamped_frame) 
 	return true;
 }
 
-// remove frame from RX backlog
-bool tfcan_dequeue_frame(TFCAN_Frame *frame) {
+bool tfcan_frame_readable() {
 	if (tfcan.reconfigure_queues ||
 	    tfcan.timestamped_frame_enabled ||
 	    tfcan.rx_backlog_size == 0) {
@@ -933,6 +932,15 @@ bool tfcan_dequeue_frame(TFCAN_Frame *frame) {
 
 	if (tfcan.rx_backlog[tfcan.rx_backlog_start].mo_type == TFCAN_MO_TYPE_INVALID) {
 		return false; // RX backlog empty
+	}
+
+	return true;
+}
+
+// remove frame from RX backlog
+bool tfcan_dequeue_frame(TFCAN_Frame *frame) {
+	if(!tfcan_frame_readable()) {
+		return false;
 	}
 
 	memcpy(frame, &tfcan.rx_backlog[tfcan.rx_backlog_start], sizeof(TFCAN_Frame));
