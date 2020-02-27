@@ -65,6 +65,12 @@ typedef enum {
 	TFCAN_NODE_LEC_CRC_ERROR      = 0b110
 } TFCAN_NodeLEC;
 
+typedef enum {
+	TFCAN_ERROR_STATE_IDLE   = 0,
+	TFCAN_ERROR_STATE_ERROR_OCCURED,
+	TFCAN_ERROR_STATE_ERROR_REPORTED,
+} TFCAN_ErrorState;
+
 typedef struct {
 	struct {
 		uint32_t mo_type:3; // TFCAN_MOType
@@ -154,6 +160,9 @@ typedef struct {
 	LEDFlickerState com_led_state;
 	LEDFlickerState error_led_state;
 	TFCAN_ErrorLEDConfig error_led_config;
+
+	volatile bool error_occured;
+	TFCAN_ErrorState error_state;
 
 #ifdef TFCAN_BUFFER_DEBUG
 	uint32_t last_buffer_debug;

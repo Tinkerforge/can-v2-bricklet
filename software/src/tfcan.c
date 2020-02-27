@@ -33,24 +33,18 @@
 TFCAN tfcan;
 
 void IRQ_Hdlr_0(void) {
-	bool error = false;
-
 	for (uint8_t i = 0; i < TFCAN_NODE_SIZE; ++i) {
 		const uint8_t lec = (tfcan.node[i]->NSR & (uint32_t)CAN_NODE_NSR_LEC_Msk) >> CAN_NODE_NSR_LEC_Pos;
 
 		switch (lec) {
-			case TFCAN_NODE_LEC_STUFFING_ERROR: error = true; ++tfcan.transceiver_stuffing_error_count; break;
-			case TFCAN_NODE_LEC_FORMAT_ERROR:   error = true; ++tfcan.transceiver_format_error_count;   break;
-			case TFCAN_NODE_LEC_ACK_ERROR:      error = true; ++tfcan.transceiver_ack_error_count;      break;
-			case TFCAN_NODE_LEC_BIT1_ERROR:     error = true; ++tfcan.transceiver_bit1_error_count;     break;
-			case TFCAN_NODE_LEC_BIT0_ERROR:     error = true; ++tfcan.transceiver_bit0_error_count;     break;
-			case TFCAN_NODE_LEC_CRC_ERROR:      error = true; ++tfcan.transceiver_crc_error_count;      break;
-			default:                                                                                    break;
+			case TFCAN_NODE_LEC_STUFFING_ERROR: tfcan.error_occured = true; ++tfcan.transceiver_stuffing_error_count; break;
+			case TFCAN_NODE_LEC_FORMAT_ERROR:   tfcan.error_occured = true; ++tfcan.transceiver_format_error_count;   break;
+			case TFCAN_NODE_LEC_ACK_ERROR:      tfcan.error_occured = true; ++tfcan.transceiver_ack_error_count;      break;
+			case TFCAN_NODE_LEC_BIT1_ERROR:     tfcan.error_occured = true; ++tfcan.transceiver_bit1_error_count;     break;
+			case TFCAN_NODE_LEC_BIT0_ERROR:     tfcan.error_occured = true; ++tfcan.transceiver_bit0_error_count;     break;
+			case TFCAN_NODE_LEC_CRC_ERROR:      tfcan.error_occured = true; ++tfcan.transceiver_crc_error_count;      break;
+			default:                                                                                                  break;
 		}
-	}
-
-	if (error && tfcan.error_led_config == TFCAN_ERROR_LED_CONFIG_SHOW_ERROR) {
-		XMC_GPIO_SetOutputLow(TFCAN_ERROR_LED_PIN);
 	}
 }
 
@@ -173,6 +167,8 @@ void tfcan_init(void) {
 	tfcan.error_led_state.start = 0;
 
 	tfcan.error_led_config = TFCAN_ERROR_LED_CONFIG_SHOW_TRANSCEIVER_STATE;
+	tfcan.error_occured = false;
+	tfcan.error_state = TFCAN_ERROR_STATE_IDLE;
 }
 
 void tfcan_tick(void) {
@@ -327,8 +323,8 @@ void tfcan_tick(void) {
 		}
 	}
 
-	if (rx_buffer_overflow && tfcan.error_led_config == TFCAN_ERROR_LED_CONFIG_SHOW_ERROR) {
-		XMC_GPIO_SetOutputLow(TFCAN_ERROR_LED_PIN);
+	if (rx_buffer_overflow) {
+		tfcan.error_occured = true;
 	}
 
 	// calculate RX MO age values
@@ -446,8 +442,8 @@ void tfcan_tick(void) {
 		led_flicker_increase_counter(&tfcan.com_led_state);
 	}
 
-	if (rx_backlog_overflow && tfcan.error_led_config == TFCAN_ERROR_LED_CONFIG_SHOW_ERROR) {
-		XMC_GPIO_SetOutputLow(TFCAN_ERROR_LED_PIN);
+	if (rx_backlog_overflow) {
+		tfcan.error_occured = true;
 	}
 
 	tfcan.transceiver_tx_error_level = (tfcan.node[0]->NECNT & (uint32_t)CAN_NODE_NECNT_TEC_Msk) >> CAN_NODE_NECNT_TEC_Pos;
@@ -472,6 +468,17 @@ void tfcan_tick(void) {
 			XMC_GPIO_SetOutputHigh(TFCAN_ERROR_LED_PIN);
 		} else {
 			XMC_GPIO_SetOutputLow(TFCAN_ERROR_LED_PIN);
+		}
+	}
+
+	if (tfcan.error_occured) {
+		tfcan.error_occured = false;
+		if (tfcan.error_led_config == TFCAN_ERROR_LED_CONFIG_SHOW_ERROR) {
+			XMC_GPIO_SetOutputLow(TFCAN_ERROR_LED_PIN);
+		}
+
+		if (tfcan.error_state == TFCAN_ERROR_STATE_IDLE) {
+			tfcan.error_state = TFCAN_ERROR_STATE_ERROR_OCCURED;
 		}
 	}
 
@@ -833,9 +840,7 @@ void tfcan_check_tx_buffer_timeout(void) {
 
 		++tfcan.tx_buffer_timeout_error_count;
 
-		if (tfcan.error_led_config == TFCAN_ERROR_LED_CONFIG_SHOW_ERROR) {
-			XMC_GPIO_SetOutputLow(TFCAN_ERROR_LED_PIN);
-		}
+		tfcan.error_occured = true;
 
 		// disable transmission to ensure consitent register content while
 		// modifying MOFGPR.CUR and MOSTAT.TXEN1
