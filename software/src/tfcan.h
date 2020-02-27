@@ -140,12 +140,12 @@ typedef struct {
 	TFCAN_TransceiverState transceiver_state;
 	uint8_t transceiver_tx_error_level;
 	uint8_t transceiver_rx_error_level;
-	uint32_t transceiver_stuffing_error_count;
-	uint32_t transceiver_format_error_count;
-	uint32_t transceiver_ack_error_count;
-	uint32_t transceiver_bit1_error_count;
-	uint32_t transceiver_bit0_error_count;
-	uint32_t transceiver_crc_error_count;
+	volatile uint32_t transceiver_stuffing_error_count;
+	volatile uint32_t transceiver_format_error_count;
+	volatile uint32_t transceiver_ack_error_count;
+	volatile uint32_t transceiver_bit1_error_count;
+	volatile uint32_t transceiver_bit0_error_count;
+	volatile uint32_t transceiver_crc_error_count;
 	uint32_t tx_buffer_timeout_error_count;
 	uint32_t rx_buffer_overflow_error_count;
 	uint32_t rx_buffer_overflow_error_occurred; // bitmask
