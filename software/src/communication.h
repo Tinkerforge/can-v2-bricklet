@@ -403,7 +403,7 @@ bool handle_timestamped_frame_read_low_level_callback(void);
 #define COMMUNICATION_CALLBACK_HANDLER_NUM 3
 #define COMMUNICATION_CALLBACK_LIST_INIT \
 	handle_frame_read_low_level_callback, \
-	handle_frame_readable_callback
+	handle_frame_readable_callback, \
 	handle_timestamped_frame_read_low_level_callback, \
 */
 #define COMMUNICATION_CALLBACK_HANDLER_NUM 2
