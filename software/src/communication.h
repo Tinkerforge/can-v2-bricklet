@@ -99,8 +99,8 @@ void communication_init(void);
 #define FID_GET_ERROR_LED_CONFIG 15
 #define FID_SET_FRAME_READABLE_CALLBACK_CONFIGURATION 17
 #define FID_GET_FRAME_READABLE_CALLBACK_CONFIGURATION 18
-#define FID_SET_ERROR_OCCURED_CALLBACK_CONFIGURATION 20
-#define FID_GET_ERROR_OCCURED_CALLBACK_CONFIGURATION 21
+#define FID_SET_ERROR_OCCURRED_CALLBACK_CONFIGURATION 20
+#define FID_GET_ERROR_OCCURRED_CALLBACK_CONFIGURATION 21
 #define FID_SET_TIMESTAMPED_FRAME_CONFIGURATION 23
 #define FID_GET_TIMESTAMPED_FRAME_CONFIGURATION 24
 #define FID_WRITE_TIMESTAMPED_FRAME_LOW_LEVEL 25
@@ -111,7 +111,7 @@ void communication_init(void);
 
 #define FID_CALLBACK_FRAME_READ_LOW_LEVEL 16
 #define FID_CALLBACK_FRAME_READABLE 19
-#define FID_CALLBACK_ERROR_OCCURED 22
+#define FID_CALLBACK_ERROR_OCCURRED 22
 #define FID_CALLBACK_TIMESTAMPED_FRAME_READ_LOW_LEVEL 30
 
 typedef struct {
@@ -287,20 +287,20 @@ typedef struct {
 typedef struct {
 	TFPMessageHeader header;
 	bool enabled;
-} __attribute__((__packed__)) SetErrorOccuredCallbackConfiguration;
+} __attribute__((__packed__)) SetErrorOccurredCallbackConfiguration;
 
 typedef struct {
 	TFPMessageHeader header;
-} __attribute__((__packed__)) GetErrorOccuredCallbackConfiguration;
+} __attribute__((__packed__)) GetErrorOccurredCallbackConfiguration;
 
 typedef struct {
 	TFPMessageHeader header;
 	bool enabled;
-} __attribute__((__packed__)) GetErrorOccuredCallbackConfiguration_Response;
+} __attribute__((__packed__)) GetErrorOccurredCallbackConfiguration_Response;
 
 typedef struct {
 	TFPMessageHeader header;
-} __attribute__((__packed__)) ErrorOccured_Callback;
+} __attribute__((__packed__)) ErrorOccurred_Callback;
 
 typedef struct {
 	TFPMessageHeader header;
@@ -406,8 +406,8 @@ BootloaderHandleMessageResponse set_error_led_config(const SetErrorLEDConfig *da
 BootloaderHandleMessageResponse get_error_led_config(const GetErrorLEDConfig *data, GetErrorLEDConfig_Response *response);
 BootloaderHandleMessageResponse set_frame_readable_callback_configuration(const SetFrameReadableCallbackConfiguration *data);
 BootloaderHandleMessageResponse get_frame_readable_callback_configuration(const GetFrameReadableCallbackConfiguration *data, GetFrameReadableCallbackConfiguration_Response *response);
-BootloaderHandleMessageResponse set_error_occured_callback_configuration(const SetErrorOccuredCallbackConfiguration *data);
-BootloaderHandleMessageResponse get_error_occured_callback_configuration(const GetErrorOccuredCallbackConfiguration *data, GetErrorOccuredCallbackConfiguration_Response *response);
+BootloaderHandleMessageResponse set_error_occurred_callback_configuration(const SetErrorOccurredCallbackConfiguration *data);
+BootloaderHandleMessageResponse get_error_occurred_callback_configuration(const GetErrorOccurredCallbackConfiguration *data, GetErrorOccurredCallbackConfiguration_Response *response);
 BootloaderHandleMessageResponse set_timestamped_frame_configuration(const SetTimestampedFrameConfiguration *data);
 BootloaderHandleMessageResponse get_timestamped_frame_configuration(const GetTimestampedFrameConfiguration *data, GetTimestampedFrameConfiguration_Response *response);
 BootloaderHandleMessageResponse write_timestamped_frame_low_level(const WriteTimestampedFrameLowLevel *data, WriteTimestampedFrameLowLevel_Response *response);
@@ -419,7 +419,7 @@ BootloaderHandleMessageResponse get_timestamped_frame_read_callback_configuratio
 // Callbacks
 bool handle_frame_read_low_level_callback(void);
 bool handle_frame_readable_callback(void);
-bool handle_error_occured_callback(void);
+bool handle_error_occurred_callback(void);
 bool handle_timestamped_frame_read_low_level_callback(void);
 
 #define COMMUNICATION_CALLBACK_TICK_WAIT_MS 1
@@ -428,13 +428,13 @@ bool handle_timestamped_frame_read_low_level_callback(void);
 #define COMMUNICATION_CALLBACK_LIST_INIT \
 	handle_frame_read_low_level_callback, \
 	handle_frame_readable_callback, \
-	handle_error_occured_callback, \
+	handle_error_occurred_callback, \
 	handle_timestamped_frame_read_low_level_callback, \
 */
 #define COMMUNICATION_CALLBACK_HANDLER_NUM 3
 #define COMMUNICATION_CALLBACK_LIST_INIT \
 	handle_frame_read_low_level_callback, \
 	handle_frame_readable_callback, \
-	handle_error_occured_callback, \
+	handle_error_occurred_callback, \
 
 #endif

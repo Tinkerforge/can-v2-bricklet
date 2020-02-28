@@ -33,7 +33,7 @@ extern TFCAN tfcan;
 static bool frame_read_callback_enabled = false;
 static bool frame_readable_callback_enabled = false;
 static bool frame_readable_callback_already_sent = false;
-static bool error_occured_callback_enabled = false;
+static bool error_occurred_callback_enabled = false;
 static bool timestamped_frame_read_callback_enabled = false;
 
 BootloaderHandleMessageResponse handle_message(const void *message, void *response) {
@@ -55,8 +55,8 @@ BootloaderHandleMessageResponse handle_message(const void *message, void *respon
 		case FID_GET_ERROR_LED_CONFIG: return get_error_led_config(message, response);
 		case FID_SET_FRAME_READABLE_CALLBACK_CONFIGURATION: return set_frame_readable_callback_configuration(message);
 		case FID_GET_FRAME_READABLE_CALLBACK_CONFIGURATION: return get_frame_readable_callback_configuration(message, response);
-		case FID_SET_ERROR_OCCURED_CALLBACK_CONFIGURATION: return set_error_occured_callback_configuration(message);
-		case FID_GET_ERROR_OCCURED_CALLBACK_CONFIGURATION: return get_error_occured_callback_configuration(message, response);
+		case FID_SET_ERROR_OCCURRED_CALLBACK_CONFIGURATION: return set_error_occurred_callback_configuration(message);
+		case FID_GET_ERROR_OCCURRED_CALLBACK_CONFIGURATION: return get_error_occurred_callback_configuration(message, response);
 /*
 		case FID_SET_TIMESTAMPED_FRAME_CONFIGURATION: return set_timestamped_frame_configuration(message);
 		case FID_GET_TIMESTAMPED_FRAME_CONFIGURATION: return get_timestamped_frame_configuration(message, response);
@@ -371,14 +371,14 @@ BootloaderHandleMessageResponse get_frame_readable_callback_configuration(const 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
 
-BootloaderHandleMessageResponse set_error_occured_callback_configuration(const SetErrorOccuredCallbackConfiguration *data) {
-	error_occured_callback_enabled = data->enabled;
+BootloaderHandleMessageResponse set_error_occurred_callback_configuration(const SetErrorOccurredCallbackConfiguration *data) {
+	error_occurred_callback_enabled = data->enabled;
 	return HANDLE_MESSAGE_RESPONSE_EMPTY;
 }
 
-BootloaderHandleMessageResponse get_error_occured_callback_configuration(const GetErrorOccuredCallbackConfiguration *data, GetErrorOccuredCallbackConfiguration_Response *response) {
-	response->header.length = sizeof(GetErrorOccuredCallbackConfiguration_Response);
-	response->enabled = error_occured_callback_enabled;
+BootloaderHandleMessageResponse get_error_occurred_callback_configuration(const GetErrorOccurredCallbackConfiguration *data, GetErrorOccurredCallbackConfiguration_Response *response) {
+	response->header.length = sizeof(GetErrorOccurredCallbackConfiguration_Response);
+	response->enabled = error_occurred_callback_enabled;
 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
@@ -596,26 +596,26 @@ bool handle_timestamped_frame_read_low_level_callback(void) {
 	return false;
 }
 
-bool handle_error_occured_callback(void) {
+bool handle_error_occurred_callback(void) {
 	static bool is_buffered = false;
-	static ErrorOccured_Callback cb;
+	static ErrorOccurred_Callback cb;
 
 	if(!is_buffered) {
-		if (!error_occured_callback_enabled) {
+		if (!error_occurred_callback_enabled) {
 			return false;
 		}
 
-		if (tfcan.error_state != TFCAN_ERROR_STATE_ERROR_OCCURED) {
+		if (tfcan.error_state != TFCAN_ERROR_STATE_ERROR_OCCURRED) {
 			return false;
 		}
 
 		tfcan.error_state = TFCAN_ERROR_STATE_ERROR_REPORTED;
 
-		tfp_make_default_header(&cb.header, bootloader_get_uid(), sizeof(ErrorOccured_Callback), FID_CALLBACK_ERROR_OCCURED);
+		tfp_make_default_header(&cb.header, bootloader_get_uid(), sizeof(ErrorOccurred_Callback), FID_CALLBACK_ERROR_OCCURRED);
 	}
 
 	if(bootloader_spitfp_is_send_possible(&bootloader_status.st)) {
-		bootloader_spitfp_send_ack_and_message(&bootloader_status, (uint8_t*)&cb, sizeof(ErrorOccured_Callback));
+		bootloader_spitfp_send_ack_and_message(&bootloader_status, (uint8_t*)&cb, sizeof(ErrorOccurred_Callback));
 		is_buffered = false;
 		return true;
 	} else {

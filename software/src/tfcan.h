@@ -67,7 +67,7 @@ typedef enum {
 
 typedef enum {
 	TFCAN_ERROR_STATE_IDLE   = 0,
-	TFCAN_ERROR_STATE_ERROR_OCCURED,
+	TFCAN_ERROR_STATE_ERROR_OCCURRED,
 	TFCAN_ERROR_STATE_ERROR_REPORTED,
 } TFCAN_ErrorState;
 
@@ -161,7 +161,7 @@ typedef struct {
 	LEDFlickerState error_led_state;
 	TFCAN_ErrorLEDConfig error_led_config;
 
-	volatile bool error_occured;
+	volatile bool error_occurred;
 	TFCAN_ErrorState error_state;
 
 #ifdef TFCAN_BUFFER_DEBUG
