@@ -7,6 +7,6 @@
 2019-05-29: 2.0.2 (06d8217)
 - Fix SPITFP IRQ race condition with other higher prio IRQs (through bricklib2)
 
-2020-02-28: 2.0.3 (<unknown>)
+2020-02-28: 2.0.3 (d7f0cb6)
 - Add frame readable callback
 - Add error occured callback
