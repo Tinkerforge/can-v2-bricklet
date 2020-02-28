@@ -43,7 +43,7 @@ void IRQ_Hdlr_0(void) {
 			case TFCAN_NODE_LEC_BIT1_ERROR:     tfcan.error_occurred = true; ++tfcan.transceiver_bit1_error_count;     break;
 			case TFCAN_NODE_LEC_BIT0_ERROR:     tfcan.error_occurred = true; ++tfcan.transceiver_bit0_error_count;     break;
 			case TFCAN_NODE_LEC_CRC_ERROR:      tfcan.error_occurred = true; ++tfcan.transceiver_crc_error_count;      break;
-			default:                                                                                                  break;
+			default:                                                                                                   break;
 		}
 	}
 }
@@ -473,6 +473,7 @@ void tfcan_tick(void) {
 
 	if (tfcan.error_occurred) {
 		tfcan.error_occurred = false;
+
 		if (tfcan.error_led_config == TFCAN_ERROR_LED_CONFIG_SHOW_ERROR) {
 			XMC_GPIO_SetOutputLow(TFCAN_ERROR_LED_PIN);
 		}

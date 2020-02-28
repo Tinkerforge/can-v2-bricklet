@@ -295,6 +295,7 @@ BootloaderHandleMessageResponse get_error_log_low_level(const GetErrorLogLowLeve
 	response->read_backlog_overflow_error_count          = tfcan.rx_backlog_overflow_error_count;
 
 	tfcan.rx_buffer_overflow_error_occurred = 0; // reading the error-log clears the occurred bitmask
+
 	if (tfcan.error_state == TFCAN_ERROR_STATE_ERROR_REPORTED) {
 		tfcan.error_state = TFCAN_ERROR_STATE_IDLE;
 	}
