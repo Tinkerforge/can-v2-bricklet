@@ -11,5 +11,5 @@
 - Add frame readable callback
 - Add error occured callback
 
-2020-02-28: 2.0.4 (<unknown>)
+2020-02-28: 2.0.4 (33e81f4)
 - Fix bit0 error handling in bus-off mode
