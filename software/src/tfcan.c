@@ -34,7 +34,14 @@ TFCAN tfcan;
 
 void IRQ_Hdlr_0(void) {
 	for (uint8_t i = 0; i < TFCAN_NODE_SIZE; ++i) {
-		const uint8_t lec = (tfcan.node[i]->NSR & (uint32_t)CAN_NODE_NSR_LEC_Msk) >> CAN_NODE_NSR_LEC_Pos;
+		const uint32_t nsr = tfcan.node[i]->NSR;
+		const uint8_t lec = (nsr & (uint32_t)CAN_NODE_NSR_LEC_Msk) >> CAN_NODE_NSR_LEC_Pos;
+
+		if ((nsr & (uint32_t)CAN_NODE_NSR_BOFF_Msk) != 0 && lec == TFCAN_NODE_LEC_BIT0_ERROR) {
+			// in bus-off mode the transceiver uses the bit0 flag to indicate that
+			// 11 recessive bits have been received. therefore, this is not an error
+			continue;
+		}
 
 		switch (lec) {
 			case TFCAN_NODE_LEC_STUFFING_ERROR: tfcan.error_occurred = true; ++tfcan.transceiver_stuffing_error_count; break;
