@@ -47,7 +47,9 @@ class Example
 
 		Console.WriteLine("Press enter to exit");
 		Console.ReadLine();
+
 		can.SetFrameReadCallbackConfiguration(false);
+
 		ipcon.Disconnect();
 	}
 }

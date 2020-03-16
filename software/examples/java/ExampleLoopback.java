@@ -45,7 +45,9 @@ public class ExampleLoopback {
 		               new int[]{42, 23, 17});
 
 		System.out.println("Press key to exit"); System.in.read();
+
 		can.setFrameReadCallbackConfiguration(false);
+
 		ipcon.disconnect();
 	}
 }

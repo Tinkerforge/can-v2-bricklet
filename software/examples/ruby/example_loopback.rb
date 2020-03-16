@@ -36,5 +36,7 @@ can.write_frame BrickletCANV2::FRAME_TYPE_STANDARD_DATA, 1742, [42, 23, 17]
 
 puts 'Press key to exit'
 $stdin.gets
+
 can.set_frame_read_callback_configuration false
+
 ipcon.disconnect

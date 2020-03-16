@@ -45,7 +45,9 @@ Module ExampleLoopback
 
         Console.WriteLine("Press key to exit")
         Console.ReadLine()
+
         can.SetFrameReadCallbackConfiguration(False)
+
         ipcon.Disconnect()
     End Sub
 End Module

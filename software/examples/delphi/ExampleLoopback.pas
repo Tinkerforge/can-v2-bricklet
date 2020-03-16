@@ -70,7 +70,9 @@ begin
 
   WriteLn('Press key to exit');
   ReadLn;
+
   can.SetFrameReadCallbackConfiguration(false);
+
   ipcon.Destroy; { Calls ipcon.Disconnect internally }
 end;
 

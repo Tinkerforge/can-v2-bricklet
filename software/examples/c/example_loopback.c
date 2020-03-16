@@ -61,7 +61,9 @@ int main(void) {
 
 	printf("Press key to exit\n");
 	getchar();
+
 	can_v2_set_frame_read_callback_configuration(&can, false);
+
 	can_v2_destroy(&can);
 	ipcon_destroy(&ipcon); // Calls ipcon_disconnect internally
 	return 0;

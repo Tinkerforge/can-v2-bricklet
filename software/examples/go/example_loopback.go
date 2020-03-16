@@ -46,8 +46,7 @@ func main() {
 	can.SetFrameReadCallbackConfiguration(true)
 
 	// Write standard data frame with identifier 1742 and 3 bytes of data
-	can.WriteFrame(can_v2_bricklet.FrameTypeStandardData, 1742,
-		[]uint8{42, 23, 17})
+	can.WriteFrame(can_v2_bricklet.FrameTypeStandardData, 1742, []uint8{42, 23, 17})
 
 	fmt.Print("Press enter to exit.")
 	fmt.Scanln()

@@ -39,5 +39,7 @@ $can->write_frame($can->FRAME_TYPE_STANDARD_DATA, 1742, [42, 23, 17]);
 
 print "Press key to exit\n";
 <STDIN>;
+
 $can->set_frame_read_callback_configuration(0);
+
 $ipcon->disconnect();

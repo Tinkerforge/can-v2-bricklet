@@ -24,7 +24,9 @@ function octave_example_loopback()
     can.writeFrame(can.FRAME_TYPE_STANDARD_DATA, 1742, [42 23 17]);
 
     input("Press key to exit\n", "s");
+
     can.setFrameReadCallbackConfiguration(false);
+
     ipcon.disconnect();
 end
 
