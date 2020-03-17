@@ -19,8 +19,8 @@ Module ExampleLoopback
             Console.WriteLine("Frame Type: Extended Remote")
         End If
 
-        Console.WriteLine("Identifier: {0}", identifier)
-        Console.Write("Data (Length: {0}):", data.Length)
+        Console.WriteLine("Identifier: " + identifier.ToString())
+        Console.Write("Data (Length: " + data.Length.ToString() + "):")
 
         Dim i As Integer
         For i = 0 To Math.Min(data.Length - 1, 7)
