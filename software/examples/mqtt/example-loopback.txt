@@ -16,6 +16,7 @@ setup:
 				print "Frame Type: Extended Remote"
 			elseif frame_type == "extended_remote"
 				print "Frame Type: Extended Remote"
+			endif
 
 			print "Identifier: " + identifier
 			print "Data: " + data
