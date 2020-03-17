@@ -44,11 +44,11 @@ function cb_frame_read(e)
         fprintf('Frame Type: Extended Remote\n');
     end
 
-    fprintf('Identifier: %d\n', e.identifier);
-    fprintf('Data (Length: %d):', e.data.length);
+    fprintf('Identifier: %i\n', e.identifier);
+    fprintf('Data (Length: %i):', e.data.length);
 
     for i = 1:min(e.data.length, 8)
-        fprintf(' %d', e.data(i));
+        fprintf(' %i', e.data(i));
     end
 
     fprintf('\n');
