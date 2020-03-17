@@ -22,7 +22,16 @@ can.set_transceiver_configuration 1000000, 625, BrickletCANV2::TRANSCEIVER_MODE_
 # Register frame read callback
 can.register_callback(BrickletCANV2::CALLBACK_FRAME_READ) do |frame_type, identifier,
                                                               data|
-  puts "Frame Type: #{frame_type}"
+  if frame_type == BrickletCANV2::FRAME_TYPE_STANDARD_DATA
+    puts "Frame Type: Standard Data"
+  elsif frame_type == BrickletCANV2::FRAME_TYPE_STANDARD_REMOTE
+    puts "Frame Type: Standard Remote"
+  elsif frame_type == BrickletCANV2::FRAME_TYPE_EXTENDED_DATA
+    puts "Frame Type: Extended Data"
+  elsif frame_type == BrickletCANV2::FRAME_TYPE_EXTENDED_REMOTE
+    puts "Frame Type: Extended Remote"
+  end
+
   puts "Identifier: #{identifier}"
   puts "Data (Length: #{data.length}): #{data[0, [data.length, 8].min].join(' ')}"
   puts ''

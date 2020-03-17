@@ -30,20 +30,33 @@ procedure TExample.FrameReadCB(sender: TBrickletCANV2; const frameType: byte;
                                const identifier: longword; const data: TArrayOfUInt8);
 var i: integer;
 begin
-  WriteLn(Format('Frame Type: %d', [frameType]));
+  if (frameType = BRICKLET_CAN_V2_FRAME_TYPE_STANDARD_DATA) then begin
+    WriteLn('Frame Type: Standard Data');
+  end
+  else if (frameType = BRICKLET_CAN_V2_FRAME_TYPE_STANDARD_REMOTE) then begin
+    WriteLn('Frame Type: Standard Remote');
+  end
+  else if (frameType = BRICKLET_CAN_V2_FRAME_TYPE_EXTENDED_DATA) then begin
+    WriteLn('Frame Type: Extended Data');
+  end
+  else if (frameType = BRICKLET_CAN_V2_FRAME_TYPE_EXTENDED_REMOTE) then begin
+    WriteLn('Frame Type: Extended Remote');
+  end;
+
   WriteLn(Format('Identifier: %d', [identifier]));
   Write(Format('Data (Length: %d):', [Length(data)]));
+
   for i := 0 to (Length(data) - 1) do begin
     if i < 8 then begin
       Write(Format(' %d', [data[i]]));
     end;
   end;
+
   WriteLn('');
   WriteLn('');
 end;
 
 procedure TExample.Execute;
-var data: TArrayOfUInt8;
 begin
   { Create IP connection }
   ipcon := TIPConnection.Create;

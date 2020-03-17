@@ -13,7 +13,23 @@ sub cb_frame_read
 {
     my ($frame_type, $identifier, $data) = @_;
 
-    print "Frame Type: $frame_type\n";
+    if ($frame_type == Tinkerforge::BrickletCANV2->FRAME_TYPE_STANDARD_DATA)
+    {
+        print "Frame Type: Standard Data\n";
+    }
+    elsif ($frame_type == Tinkerforge::BrickletCANV2->FRAME_TYPE_STANDARD_REMOTE)
+    {
+        print "Frame Type: Standard Remote\n";
+    }
+    elsif ($frame_type == Tinkerforge::BrickletCANV2->FRAME_TYPE_EXTENDED_DATA)
+    {
+        print "Frame Type: Extended Data\n";
+    }
+    elsif ($frame_type == Tinkerforge::BrickletCANV2->FRAME_TYPE_EXTENDED_REMOTE)
+    {
+        print "Frame Type: Extended Remote\n";
+    }
+
     print "Identifier: $identifier\n";
     print "Data (Length: " . scalar @{$data} . "): " . join(" ", @{$data}[0..(scalar @{$data}, 8)[scalar @{$data} > 8] - 1]) . "\n";
     print "\n";

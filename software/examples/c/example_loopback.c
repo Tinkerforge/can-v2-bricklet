@@ -12,7 +12,16 @@ void cb_frame_read(uint8_t frame_type, uint32_t identifier,
                    uint8_t *data, uint16_t data_length, void *user_data) {
 	(void)user_data; // avoid unused parameter warning
 
-	printf("Frame Type: %u\n", frame_type);
+	if(frame_type == CAN_V2_FRAME_TYPE_STANDARD_DATA) {
+		printf("Frame Type: Standard Data\n");
+	} else if(frame_type == CAN_V2_FRAME_TYPE_STANDARD_REMOTE) {
+		printf("Frame Type: Standard Remote\n");
+	} else if(frame_type == CAN_V2_FRAME_TYPE_EXTENDED_DATA) {
+		printf("Frame Type: Extended Data\n");
+	} else if(frame_type == CAN_V2_FRAME_TYPE_EXTENDED_REMOTE) {
+		printf("Frame Type: Extended Remote\n");
+	}
+
 	printf("Identifier: %u\n", identifier);
 	printf("Data (Length: %d):", data_length);
 

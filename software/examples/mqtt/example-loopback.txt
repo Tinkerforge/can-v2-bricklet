@@ -6,23 +6,23 @@ setup:
 
 	# Handle incoming frame read callbacks
 	subscribe to tinkerforge/callback/can_v2_bricklet/XYZ/frame_read
-        if a message arrives:
-            # message contains frame_type as int with symbols, identifier as int and data as int array
-            if frame_type == "StandardData"
-                print "Frame Type: Standard Data"
-            elseif frame_type == "StandardRemote"
-                print "Frame Type: Standard Remote"
-            elseif frame_type == "ExtendedData"
-                print "Frame Type: Extended Remote"
-            elseif frame_type == "ExtendedRemote"
-                print "Frame Type: Extended Remote"
-            
-            print "Identifier: " + identifier
-            print "Data: " + data
-            print "\n"
-        endif
+		if a message arrives:
+			# message contains frame_type as int with symbols, identifier as int and data as int array
+			if frame_type == "standard_data"
+				print "Frame Type: Standard Data"
+			elseif frame_type == "standard_remote"
+				print "Frame Type: Standard Remote"
+			elseif frame_type == "extended_data"
+				print "Frame Type: Extended Remote"
+			elseif frame_type == "extended_remote"
+				print "Frame Type: Extended Remote"
+
+			print "Identifier: " + identifier
+			print "Data: " + data
+			print "\n"
+		endif
 	endsubscribe
-	
+
 	publish '{"register": true}' to tinkerforge/register/can_v2_bricklet/XYZ/frame_read # Register frame_read callback
 
 	# Enable frame read callback

@@ -34,7 +34,16 @@ end
 
 % Callback function for frame read callback
 function cb_frame_read(e)
-    fprintf('Frame Type: %d\n', e.frameType);
+    if e.frameType == com.tinkerforge.BrickletCANV2.FRAME_TYPE_STANDARD_DATA
+        fprintf('Frame Type: Standard Data\n');
+    elseif e.frameType == com.tinkerforge.BrickletCANV2.FRAME_TYPE_STANDARD_REMOTE
+        fprintf('Frame Type: Standard Remote\n');
+    elseif e.frameType == com.tinkerforge.BrickletCANV2.FRAME_TYPE_EXTENDED_DATA
+        fprintf('Frame Type: Extended Data\n');
+    elseif e.frameType == com.tinkerforge.BrickletCANV2.FRAME_TYPE_EXTENDED_REMOTE
+        fprintf('Frame Type: Extended Remote\n');
+    end
+
     fprintf('Identifier: %d\n', e.identifier);
     fprintf('Data (Length: %d):', e.data.length);
 

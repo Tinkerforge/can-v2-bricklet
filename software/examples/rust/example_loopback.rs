@@ -1,6 +1,8 @@
 use std::{error::Error, io, thread};
 use tinkerforge::{can_v2_bricklet::*, ip_connection::IpConnection};
 
+// FIXME: This example is incomplete
+
 const HOST: &str = "localhost";
 const PORT: u16 = 4223;
 const UID: &str = "XYZ"; // Change XYZ to the UID of your CAN Bricklet 2.0.
@@ -24,12 +26,23 @@ fn main() -> Result<(), Box<dyn Error>> {
         for frame_read in frame_read_receiver {
             match frame_read {
                 Some((payload, result)) => {
-                    println!("Frame Type: {}", result.frame_type);
+                    if result.frame_type == CAN_V2_BRICKLET_FRAME_TYPE_STANDARD_DATA {
+                        println!("Frame Type: Standard Data");
+                    } else if result.frame_type == CAN_V2_BRICKLET_FRAME_TYPE_STANDARD_REMOTE {
+                        println!("Frame Type: Standard Remote");
+                    } else if result.frame_type == CAN_V2_BRICKLET_FRAME_TYPE_EXTENDED_DATA {
+                        println!("Frame Type: Extended Data");
+                    } else if result.frame_type == CAN_V2_BRICKLET_FRAME_TYPE_EXTENDED_REMOTE {
+                        println!("Frame Type: Extended Remote");
+                    }
+
                     println!("Identifier: {}", result.identifier);
                     print!("Data (Length: {}):", payload.len());
+
                     for item in payload.iter() {
                         print!(" {}", item);
                     }
+
                     println!();
                     println!();
                 }

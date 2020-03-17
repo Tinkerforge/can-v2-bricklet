@@ -9,7 +9,16 @@ Module ExampleLoopback
     ' Callback subroutine for frame read callback
     Sub FrameReadCB(ByVal sender As BrickletCANV2, ByVal frameType As Byte, _
                     ByVal identifier As Long, ByVal data As Byte())
-        Console.WriteLine("Frame Type: {0}", frameType)
+        If frameType = BrickletCANV2.FRAME_TYPE_STANDARD_DATA Then
+            Console.WriteLine("Frame Type: Standard Data")
+        Else If frameType = BrickletCANV2.FRAME_TYPE_STANDARD_REMOTE Then
+            Console.WriteLine("Frame Type: Standard Remote")
+        Else If frameType = BrickletCANV2.FRAME_TYPE_EXTENDED_DATA Then
+            Console.WriteLine("Frame Type: Extended Data")
+        Else If frameType = BrickletCANV2.FRAME_TYPE_EXTENDED_REMOTE Then
+            Console.WriteLine("Frame Type: Extended Remote")
+        End If
+
         Console.WriteLine("Identifier: {0}", identifier)
         Console.Write("Data (Length: {0}):", data.Length)
 

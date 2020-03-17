@@ -1,5 +1,7 @@
 <?php
 
+// FIXME: This example is incomplete
+
 require_once('Tinkerforge/IPConnection.php');
 require_once('Tinkerforge/BrickletCANV2.php');
 
@@ -13,7 +15,16 @@ const UID = 'XYZ'; // Change XYZ to the UID of your CAN Bricklet 2.0
 // Callback function for frame read callback
 function cb_frameRead($frame_type, $identifier, $data)
 {
-    echo "Frame Type: $frame_type\n";
+    if ($frame_type == BrickletCANV2::FRAME_TYPE_STANDARD_DATA) {
+        echo "Frame Type: Standard Data\n";
+    } elseif ($frame_type == BrickletCANV2::FRAME_TYPE_STANDARD_REMOTE) {
+        echo "Frame Type: Standard Remote\n";
+    } elseif ($frame_type == BrickletCANV2::FRAME_TYPE_EXTENDED_DATA) {
+        echo "Frame Type: Extended Data\n";
+    } elseif ($frame_type == BrickletCANV2::FRAME_TYPE_EXTENDED_REMOTE) {
+        echo "Frame Type: Extended Remote\n";
+    }
+
     echo "Identifier: $identifier\n";
     echo "Data (Length: " . count($data) . "):";
 

@@ -10,7 +10,15 @@ from tinkerforge.bricklet_can_v2 import BrickletCANV2
 
 # Callback function for frame read callback
 def cb_frame_read(frame_type, identifier, data):
-    print("Frame Type: " + str(frame_type))
+    if frame_type == BrickletCANV2.FRAME_TYPE_STANDARD_DATA:
+        print("Frame Type: Standard Data")
+    elif frame_type == BrickletCANV2.FRAME_TYPE_STANDARD_REMOTE:
+        print("Frame Type: Standard Remote")
+    elif frame_type == BrickletCANV2.FRAME_TYPE_EXTENDED_DATA:
+        print("Frame Type: Extended Data")
+    elif frame_type == BrickletCANV2.FRAME_TYPE_EXTENDED_REMOTE:
+        print("Frame Type: Extended Remote")
+
     print("Identifier: " + str(identifier))
     print("Data (Length: " + str(len(data)) + "): " + ", ".join(map(str, data[:min(len(data), 8)])))
     print("")

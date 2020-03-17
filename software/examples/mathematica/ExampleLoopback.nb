@@ -23,7 +23,7 @@ Notebook[{
    RowBox[{"
 "}],
    RowBox[{"(*", "Callback function for frame read callback", "*)"}],
-   RowBox[{RowBox[{"FrameReadCB", "[", RowBox[{"sender_", ",", "frameType_", ",", "identifier_", ",", "data_"}], "]"}], ":=", "\[IndentingNewLine]", RowBox[{"Module", "[", RowBox[{RowBox[{"{", "}"}], ",", RowBox[{"\[IndentingNewLine]", RowBox[{"Print", "[", RowBox[{"\"\<Frame Type: \>\"", "<>", RowBox[{"ToString", "[", "frameType", "]"}]}], "]"}], ";", "\[IndentingNewLine]", RowBox[{"Print", "[", RowBox[{"\"\<Identifier: \>\"", "<>", RowBox[{"ToString", "[", "identifier", "]"}]}], "]"}], ";", "\[IndentingNewLine]", RowBox[{"Print", "[", RowBox[{"\"\<Data (Length: \>\"", "<>", RowBox[{"ToString", "[", RowBox[{"N", "[", RowBox[{"Length", "[", "data", "]"}], "]"}], "]"}], "<>", "\"\<): \>\"", "<>", RowBox[{"ToString", "[", "data", "]"}]}], "]"}], "\[IndentingNewLine]"}]}], "]"}]}],
+   RowBox[{RowBox[{"FrameReadCB", "[", RowBox[{"sender_", ",", "frameType_", ",", "identifier_", ",", "data_"}], "]"}], ":=", "\[IndentingNewLine]", RowBox[{"Module", "[", RowBox[{RowBox[{"{", "}"}], ",", RowBox[{"\[IndentingNewLine]", RowBox[{"If", "[", RowBox[{RowBox[{"frameType", "==", "Tinkerforge`BrickletCANV2`FRAMEUTYPEUSTANDARDUDATA"}], ",", RowBox[{"Print", "[", "\"\<Frame Type: Standard Data\>\"", "]"}]}], "]"}], ";", "\[IndentingNewLine]", RowBox[{"If", "[", RowBox[{RowBox[{"frameType", "==", "Tinkerforge`BrickletCANV2`FRAMEUTYPEUSTANDARDUREMOTE"}], ",", RowBox[{"Print", "[", "\"\<Frame Type: Standard Remote\>\"", "]"}]}], "]"}], ";", "\[IndentingNewLine]", RowBox[{"If", "[", RowBox[{RowBox[{"frameType", "==", "Tinkerforge`BrickletCANV2`FRAMEUTYPEUEXTENDEDUDATA"}], ",", RowBox[{"Print", "[", "\"\<Frame Type: Extended Data\>\"", "]"}]}], "]"}], ";", "\[IndentingNewLine]", RowBox[{"If", "[", RowBox[{RowBox[{"frameType", "==", "Tinkerforge`BrickletCANV2`FRAMEUTYPEUEXTENDEDUREMOTE"}], ",", RowBox[{"Print", "[", "\"\<Frame Type: Extended Remote\>\"", "]"}]}], "]"}], ";", "\[IndentingNewLine]", RowBox[{"Print", "[", RowBox[{"\"\<Identifier: \>\"", "<>", RowBox[{"ToString", "[", "identifier", "]"}]}], "]"}], ";", "\[IndentingNewLine]", RowBox[{"Print", "[", RowBox[{"\"\<Data (Length: \>\"", "<>", RowBox[{"ToString", "[", RowBox[{"N", "[", RowBox[{"Length", "[", "data", "]"}], "]"}], "]"}], "<>", "\"\<): \>\"", "<>", RowBox[{"ToString", "[", "data", "]"}]}], "]"}], "\[IndentingNewLine]"}]}], "]"}]}],
    RowBox[{"
 "}],
    RowBox[{"AddEventHandler", "[", RowBox[{RowBox[{"can", "@", "FrameReadCallback"}], ",", "FrameReadCB"}], "]"}],
@@ -40,8 +40,9 @@ Notebook[{
    RowBox[{"Input", "[", "\"\<Click OK to exit\>\"", "]"}],
    RowBox[{"
 "}],
-   RowBox[{"(*", "Clean up", "*)"}],
    RowBox[{"can", "@", RowBox[{"SetFrameReadCallbackConfiguration", "[", "False", "]"}]}],
+   RowBox[{"
+"}],
    RowBox[{"ipcon", "@", RowBox[{"Disconnect", "[", "]"}]}],
    RowBox[{"ReleaseNETObject", "[", "can", "]"}],
    RowBox[{"ReleaseNETObject", "[", "ipcon", "]"}]

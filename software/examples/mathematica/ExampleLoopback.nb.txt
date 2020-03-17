@@ -17,7 +17,10 @@ can@SetTransceiverConfiguration[1000000,625,
 (*Callback function for frame read callback*)
 FrameReadCB[sender_,frameType_,identifier_,data_]:=
  Module[{},
-  Print["Frame Type: "<>ToString[frameType]];
+  If[frameType==Tinkerforge`BrickletCANV2`FRAMEUTYPEUSTANDARDUDATA,Print["Frame Type: Standard Data"]];
+  If[frameType==Tinkerforge`BrickletCANV2`FRAMEUTYPEUSTANDARDUREMOTE,Print["Frame Type: Standard Remote"]];
+  If[frameType==Tinkerforge`BrickletCANV2`FRAMEUTYPEUEXTENDEDUDATA,Print["Frame Type: Extended Data"]];
+  If[frameType==Tinkerforge`BrickletCANV2`FRAMEUTYPEUEXTENDEDUREMOTE,Print["Frame Type: Extended Remote"]];
   Print["Identifier: "<>ToString[identifier]];
   Print["Data (Length: "<>ToString[N[Length[data]]]<>"): "<>ToString[data]]
  ]
@@ -32,8 +35,8 @@ can@WriteFrame[Tinkerforge`BrickletCANV2`FRAMEUTYPEUSTANDARDUDATA,1742,{42,23,17
 
 Input["Click OK to exit"]
 
-(*Clean up*)
 can@SetFrameReadCallbackConfiguration[False]
+
 ipcon@Disconnect[]
 ReleaseNETObject[can]
 ReleaseNETObject[ipcon]

@@ -32,7 +32,16 @@ end
 
 % Callback function for frame read callback
 function cb_frame_read(e)
-    fprintf("Frame Type: %d\n", e.frameType);
+    if e.frameType == 0
+        fprintf("Frame Type: Standard Data\n");
+    elseif e.frameType == 1
+        fprintf("Frame Type: Standard Remote\n");
+    elseif e.frameType == 2
+        fprintf("Frame Type: Extended Data\n");
+    elseif e.frameType == 3
+        fprintf("Frame Type: Extended Remote\n");
+    end
+
     fprintf("Identifier: %d\n", java2int(e.identifier));
     fprintf("Data (Length: %d):", e.data.length);
 

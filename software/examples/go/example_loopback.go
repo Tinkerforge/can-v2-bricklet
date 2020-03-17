@@ -35,9 +35,11 @@ func main() {
 
 		fmt.Printf("Identifier: %d\n", identifier)
 		fmt.Printf("Data (Length: %d)\n:", len(data))
+
 		for _, item := range data {
 			fmt.Printf(" %d", item)
 		}
+
 		fmt.Println()
 		fmt.Println()
 	})
