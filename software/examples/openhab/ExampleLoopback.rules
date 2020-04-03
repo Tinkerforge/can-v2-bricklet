@@ -1,0 +1,51 @@
+// For this example configure your CAN Bricklet 2.0 to loopback mode in Paper UI.
+
+import java.util.Arrays
+
+val FRAME_TYPE_STANDARD_DATA = 0
+val FRAME_TYPE_STANDARD_REMOTE = 1
+val FRAME_TYPE_EXTENDED_DATA = 2
+val FRAME_TYPE_EXTENDED_REMOTE = 3
+
+rule "send"
+when
+    System started // Replace with trigger of your choice
+then
+    // Change XYZ to the UID of your CAN Bricklet
+    val canActions = getActions("tinkerforge", "tinkerforge:brickletcanv2:XYZ")
+    
+    // Write standard data frame with identifier 1742 and 3 bytes of data
+    canActions.brickletCANV2WriteFrame(FRAME_TYPE_STANDARD_DATA, 1742, newArrayList(42, 23, 17))
+end
+
+rule "receive"
+when
+    // Change XYZ to the UID of your CAN Bricklet
+    Channel "tinkerforge:brickletcanv2:XYZ:BrickletCANV2FrameReadable" triggered
+then
+    // Change XYZ to the UID of your CAN Bricklet
+    val canActions = getActions("tinkerforge", "tinkerforge:brickletcanv2:XYZ")
+    val frame = canActions.brickletCANV2ReadFrame()
+
+    val success = frame.get("success") as boolean
+    if (success) {
+        val frameType = frame.get("frameType") as int
+
+        if(frameType == FRAME_TYPE_STANDARD_DATA) {
+            logInfo("Example", "Frame Type: Standard Data")
+        } else if(frameType == FRAME_TYPE_STANDARD_REMOTE) {
+            logInfo("Example", "Frame Type: Standard Remote")
+        } else if(frameType == FRAME_TYPE_EXTENDED_DATA) {
+            logInfo("Example", "Frame Type: Extended Data")
+        } else if(frameType == FRAME_TYPE_EXTENDED_REMOTE) {
+            logInfo("Example", "Frame Type: Extended Remote")
+        }
+
+        logInfo("Example", "Identifier: " + frame.get("identifier"))
+        var data = frame.get("data") as int[]
+
+        logInfo("Example", "Data: " + Arrays.toString(data))
+    } else {
+        logInfo("Example", "Failed to read frame")
+    }
+end
