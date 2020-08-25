@@ -13,7 +13,6 @@ void frame_readable_handler(TF_CANV2 *device, void *user_data) {
 	frame_readable = true;
 }
 
-
 TF_CANV2 can;
 
 void example_setup(TF_HalContext *hal) {
