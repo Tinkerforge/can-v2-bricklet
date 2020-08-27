@@ -3,17 +3,20 @@
 
 #define UID "XYZ" // Change XYZ to the UID of your CAN Bricklet 2.0
 
+void example_setup(TF_HalContext *hal);
+void example_loop(TF_HalContext *hal);
+
 void check(int rc, const char* msg);
 
-bool frame_readable = false;
+static bool frame_readable = false;
 // Callback function for frame readable callback
-void frame_readable_handler(TF_CANV2 *device, void *user_data) {
+static void frame_readable_handler(TF_CANV2 *device, void *user_data) {
 	(void)device; (void)user_data; // avoid unused parameter warning
 
 	frame_readable = true;
 }
 
-TF_CANV2 can;
+static TF_CANV2 can;
 
 void example_setup(TF_HalContext *hal) {
 	// Create device object
