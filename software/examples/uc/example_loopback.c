@@ -70,12 +70,12 @@ void example_loop(TF_HalContext *hal) {
 			tf_hal_printf("Frame Type: Extended Remote\n");
 		}
 
-		tf_hal_printf("Identifier: %u\n", identifier);
-		tf_hal_printf("Data (Length: %d):", data_length);
+		tf_hal_printf("Identifier: %I32u\n", identifier);
+		tf_hal_printf("Data (Length: %I8d):", data_length);
 
 		uint8_t i;
 		for (i = 0; i < data_length && i < 8; ++i) {
-			tf_hal_printf(" %d", data[i]);
+			tf_hal_printf(" %I8d", data[i]);
 		}
 
 		tf_hal_printf("\n");
