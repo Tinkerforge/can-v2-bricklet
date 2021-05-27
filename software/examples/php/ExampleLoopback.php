@@ -1,7 +1,5 @@
 <?php
 
-// FIXME: This example is incomplete
-
 require_once('Tinkerforge/IPConnection.php');
 require_once('Tinkerforge/BrickletCANV2.php');
 
