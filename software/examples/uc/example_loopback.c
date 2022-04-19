@@ -7,8 +7,8 @@
 
 #define UID "XYZ" // Change XYZ to the UID of your CAN Bricklet 2.0
 
-void example_setup(TF_HalContext *hal);
-void example_loop(TF_HalContext *hal);
+void example_setup(TF_HAL *hal);
+void example_loop(TF_HAL *hal);
 
 void check(int rc, const char* msg);
 
@@ -22,7 +22,7 @@ static void frame_readable_handler(TF_CANV2 *device, void *user_data) {
 
 static TF_CANV2 can;
 
-void example_setup(TF_HalContext *hal) {
+void example_setup(TF_HAL *hal) {
 	// Create device object
 	check(tf_can_v2_create(&can, UID, hal), "create device object");
 
@@ -45,7 +45,7 @@ void example_setup(TF_HalContext *hal) {
 		tf_hal_printf("Failed to write frame.\n");
 }
 
-void example_loop(TF_HalContext *hal) {
+void example_loop(TF_HAL *hal) {
 	// Poll for callbacks
 	tf_hal_callback_tick(hal, 0);
 
