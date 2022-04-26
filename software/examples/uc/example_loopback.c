@@ -1,16 +1,13 @@
 // This example is not self-contained.
-// It requres usage of the example driver specific to your platform.
+// It requires usage of the example driver specific to your platform.
 // See the HAL documentation.
 
-#include "bindings/hal_common.h"
-#include "bindings/bricklet_can_v2.h"
+#include "src/bindings/hal_common.h"
+#include "src/bindings/bricklet_can_v2.h"
 
-#define UID "XYZ" // Change XYZ to the UID of your CAN Bricklet 2.0
-
+void check(int rc, const char *msg);
 void example_setup(TF_HAL *hal);
 void example_loop(TF_HAL *hal);
-
-void check(int rc, const char* msg);
 
 static bool frame_readable = false;
 // Callback function for frame readable callback
@@ -24,7 +21,7 @@ static TF_CANV2 can;
 
 void example_setup(TF_HAL *hal) {
 	// Create device object
-	check(tf_can_v2_create(&can, UID, hal), "create device object");
+	check(tf_can_v2_create(&can, NULL, hal), "create device object");
 
 	// Configure transceiver for loopback mode
 	check(tf_can_v2_set_transceiver_configuration(&can, 1000000, 625,
